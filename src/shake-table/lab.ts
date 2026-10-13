@@ -11,7 +11,7 @@ import { DT, type BuildingType } from './constants.ts';
 import type { ShakeMode } from './motion/table.ts';
 import { ShakeTableSim } from './sim/simulation.ts';
 
-export const REC_SECONDS = 15;
+export const REC_SECONDS = 40;
 export const CHART_SECONDS = 12;
 const SAMPLE_EVERY = 4; // steps: 60 Hz for the chart and replay
 
@@ -93,6 +93,11 @@ export class Lab {
     readPoses(this.sim, this.prev);
     readPoses(this.sim, this.curr);
     this.readSprings(this.springState);
+  }
+
+  /** Jumps the replay to a simulated time and keeps playing. */
+  seekReplayTime(t: number): void {
+    this.replay.t = Math.min(this.recorder.t1, Math.max(this.recorder.t0, t));
   }
 
   seekReplay(fraction: number): void {

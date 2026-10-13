@@ -1,12 +1,14 @@
-/** The lab's UI, ported from the prototype's markup. Element ids are kept for tests. */
+/** The lab's UI. Element ids from the prototype are kept for tests. */
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Controller } from '../controller.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
-import { ui } from './store.ts';
+import { CameraControls, CollapseBanner, GuidePanel, HelpDialog, InstructorsDialog, NotebookDialog, StressLegend } from './panels.tsx';
+import { ui, type DialogName } from './store.ts';
 
-type Ctl = { ctl: Controller };
+export type Ctl = { ctl: Controller };
 
-function Seg<T extends string | number>(p: { id: string; label: string; value: T; options: [T, string][]; onPick: (v: T) => void }) {
+export function Seg<T extends string | number>(p: { id: string; label: string; value: T; options: [T, string][]; onPick: (v: T) => void }) {
   return (
     <div class="seg" id={p.id} role="group" aria-label={p.label}>
       {p.options.map(([v, text]) => (
@@ -17,14 +19,25 @@ function Seg<T extends string | number>(p: { id: string; label: string; value: T
 }
 
 function Header({ ctl }: Ctl) {
+  const done = ui.notebook.value.tests.filter((t) => t.result).length;
+  const guided = ui.stop.value !== null;
   return (
     <header class="bar">
-      <div class="title card"><b>Shake Table Lab</b><small>Build it. Shake it. Break it. Replay it.</small></div>
+      <div class="title card">
+        <b>Shake Table Lab</b>
+        <small>A virtual earthquake engineering lab</small>
+      </div>
+      {ui.tableLive.value && <div class="live" role="status"><i />TABLE LIVE</div>}
       <div class="spacer" />
-      <button type="button" class="btn primary" id="guideBtn" onClick={() => ctl.showStop(ui.stop.value ?? 0)}>Guide me</button>
-      <button type="button" class="btn" id="textBtn" onClick={() => (ui.dialog.value = 'text')}>Text version</button>
-      <button type="button" class="btn" id="aboutBtn" onClick={() => (ui.dialog.value = 'about')}>About</button>
+      <nav class="nav card" aria-label="Lab sections">
+        <button type="button" class="navbtn" id="guideBtn" aria-pressed={guided} onClick={() => ctl.showStop(ui.stop.value ?? 0)}>Guided lab</button>
+        <button type="button" class="navbtn" id="exploreBtn" aria-pressed={!guided} onClick={() => ctl.explore()}>Explore</button>
+        <button type="button" class="navbtn" id="notebookBtn" onClick={() => ctl.openDialog('notebook')}>Notebook <span class="badge">{done}/{STOPS.length}</span></button>
+        <button type="button" class="navbtn" id="teachBtn" onClick={() => ctl.openDialog('instructors')}>For instructors</button>
+        <button type="button" class="navbtn" id="helpBtn" onClick={() => ctl.openDialog('help')}>Help</button>
+      </nav>
       <button type="button" class="btn" id="soundBtn" aria-pressed={ui.sound.value} onClick={() => ctl.setSound(!ui.sound.value)}>{ui.sound.value ? 'Sound on' : 'Sound off'}</button>
+      <button type="button" class="btn" id="fullBtn" onClick={() => ctl.toggleFullscreen()}>Full screen</button>
     </header>
   );
 }
@@ -86,6 +99,7 @@ function Instruments() {
           </div>
         ))}
       </div>
+      {ui.stress.value && <StressLegend />}
     </section>
   );
 }
@@ -109,38 +123,13 @@ function ReplayBar({ ctl }: Ctl) {
       <button type="button" class="btn" id="rpPlay" onClick={() => ctl.setReplayPlaying(!ui.replayPlaying.value)}>{ui.replayPlaying.value ? 'Pause' : 'Play'}</button>
       <input type="range" id="rpScrub" min="0" max="1" step="0.001" value={ui.replayPos.value} aria-label="Replay position" onInput={(e) => ctl.seekReplay(+e.currentTarget.value)} />
       <Seg id="segSpeed" label="Replay speed" value={ui.replaySpeed.value} onPick={(v) => ctl.setReplaySpeed(v)} options={[[0.25, '0.25x'], [0.5, '0.5x'], [1, '1x']]} />
-      <button type="button" class="btn" id="rpExit" onClick={() => ctl.exitReplay()}>Live</button>
+      <button type="button" class="btn primary" id="rpExit" onClick={() => ctl.exitReplay()}>Live</button>
     </div>
   );
 }
 
-function GuidePanel({ ctl }: Ctl) {
-  const i = ui.stop.value;
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { if (i !== null) titleRef.current?.focus(); }, [i]);
-  if (i === null) return null;
-  const s = STOPS[i]!;
-  return (
-    <aside class="panel card" id="panel" aria-labelledby="pTitle">
-      <button type="button" class="close" id="pClose" aria-label="Close guide" onClick={() => (ui.stop.value = null)}>&times;</button>
-      <div class="tags" id="pTags">
-        {s.tags.map((t) => <span class={`tag ${t}`}>{TAG_NAMES[t]}</span>)}
-        <span class="step">Test {i + 1} of {STOPS.length}</span>
-      </div>
-      <h2 id="pTitle" tabIndex={-1} ref={titleRef}>{s.title}</h2>
-      <div id="pBody" dangerouslySetInnerHTML={{ __html: s.body }} />
-      <p class="notice" id="pNotice">Notice: {s.notice}</p>
-      <div class="row">
-        <button type="button" class="btn primary" id="pRun" onClick={() => ctl.runStop()}>Run this test</button>
-        <button type="button" class="btn" id="pPrev" disabled={i === 0} onClick={() => ctl.showStop(i - 1)}>Back</button>
-        <button type="button" class="btn" id="pNext" disabled={i === STOPS.length - 1} onClick={() => ctl.showStop(i + 1)}>Next</button>
-      </div>
-    </aside>
-  );
-}
-
 /** A native modal dialog: showModal() traps focus and makes the rest of the page inert. */
-function Dialog(p: { name: 'intro' | 'text' | 'about'; labelledBy: string; closable?: boolean; children: preact.ComponentChildren }) {
+export function Dialog(p: { name: DialogName; labelledBy: string; closable?: boolean; wide?: boolean; children: ComponentChildren }) {
   const ref = useRef<HTMLDialogElement>(null);
   const open = ui.dialog.value === p.name;
   useEffect(() => {
@@ -150,32 +139,45 @@ function Dialog(p: { name: 'intro' | 'text' | 'about'; labelledBy: string; closa
     if (!open && d.open) d.close();
   }, [open]);
   return (
-    <dialog ref={ref} class="modal" id={`${p.name}M`} aria-labelledby={p.labelledBy}
+    <dialog ref={ref} class={`modal${p.wide ? ' wide' : ''}`} id={`${p.name}M`} aria-labelledby={p.labelledBy}
       onClose={() => { if (ui.dialog.value === p.name) ui.dialog.value = null; }}
       onClick={(e) => { if (e.target === ref.current) ui.dialog.value = null; }}>
       {p.closable !== false && <button type="button" class="close" data-close aria-label="Close" onClick={() => (ui.dialog.value = null)}>&times;</button>}
-      {p.children}
+      {open && p.children}
     </dialog>
+  );
+}
+
+function IntroDialog({ ctl }: Ctl) {
+  const go = (fn: () => void) => () => { ui.dialog.value = null; ctl.synth.init(); fn(); };
+  return (
+    <Dialog name="intro" labelledBy="introT" closable={false}>
+      <h1 id="introT">Shake Table Lab</h1>
+      <p>Engineers find out how a building fails by shaking it on a giant steel table before a real earthquake does. Here you run the table.</p>
+      <div class="choices">
+        <button type="button" class="choice primary" id="introGuide" onClick={go(() => ctl.showStop(0))}>
+          <b>Start the guided lab</b><span>6 short tests, about 30 minutes. For each one you predict, test, observe and explain.</span>
+        </button>
+        <button type="button" class="choice" id="introFree" onClick={go(() => ctl.explore())}>
+          <b>Explore on my own</b><span>Every control, no steps. Your runs still go to the notebook.</span>
+        </button>
+        <button type="button" class="choice" id="introTeach" onClick={go(() => ctl.openDialog('instructors'))}>
+          <b>For instructors</b><span>How this works as an online science lab: objectives, teaching model and assessment.</span>
+        </button>
+      </div>
+      <div class="legendT">
+        <div><span class="tag real">Real world</span> facts about real labs and real buildings</div>
+        <div><span class="tag model">Model</span> what this simulation shows, with simplified physics</div>
+      </div>
+      <p class="hint">Drag to look around and scroll to zoom. Press the question mark key for keyboard shortcuts.</p>
+    </Dialog>
   );
 }
 
 function Dialogs({ ctl }: Ctl) {
   return (
     <>
-      <Dialog name="intro" labelledBy="introT" closable={false}>
-        <h1 id="introT">Shake Table Lab</h1>
-        <p>Engineers find out how a building fails by shaking it on a giant steel table before a real earthquake does. Here you run the table.</p>
-        <p>Pick a building, pick the shaking, then press <b>Shake</b>. Watch the instruments, ride along inside, and replay any collapse in slow motion.</p>
-        <div class="legendT">
-          <div><span class="tag real">Real world</span> facts about real labs and real buildings</div>
-          <div><span class="tag model">Model</span> what this simulation shows, with simplified physics</div>
-        </div>
-        <p>Everything is a button. Drag to look around in Orbit view and scroll to zoom.</p>
-        <div class="dialog-row">
-          <button type="button" class="btn primary" id="introGuide" onClick={() => { ui.dialog.value = null; ctl.synth.init(); ctl.showStop(0); }}>Guide me through 6 tests</button>
-          <button type="button" class="btn" id="introFree" onClick={() => { ui.dialog.value = null; ctl.synth.init(); }}>Explore on my own</button>
-        </div>
-      </Dialog>
+      <IntroDialog ctl={ctl} />
       <Dialog name="text" labelledBy="textT">
         <h1 id="textT">Text version</h1>
         <div id="textBody">
@@ -209,6 +211,9 @@ function Dialogs({ ctl }: Ctl) {
         </ul>
         <p>3D: three.js r181. Physics: Rapier 0.21. No tracking, no cookies, no login.</p>
       </Dialog>
+      <HelpDialog ctl={ctl} />
+      <NotebookDialog ctl={ctl} />
+      <InstructorsDialog ctl={ctl} />
     </>
   );
 }
@@ -226,14 +231,20 @@ export function App({ ctl }: Ctl) {
   return (
     <>
       {ui.camTag.value && <div id="camtag"><span class="rec" />{ui.camTag.value}</div>}
-      {ui.toast.value && <div id="toast">{ui.toast.value}</div>}
+      {ui.toast.value && <div id="toast" role="status">{ui.toast.value}</div>}
       {ui.behind.value && <div class="behind" role="status">Running slower than real time on this device</div>}
+      <CollapseBanner />
       <Header ctl={ctl} />
-      <ControlRoom ctl={ctl} />
-      <Instruments />
-      <Chart ctl={ctl} />
+      {/* Guided lab: the lesson panel replaces the control room, because each test sets itself up. */}
+      <div class={`leftcol${ui.stop.value !== null ? ' guided' : ''}`}>
+        {ui.stop.value !== null ? <GuidePanel ctl={ctl} /> : <><ControlRoom ctl={ctl} /><Chart ctl={ctl} /></>}
+      </div>
+      <div class="rightcol">
+        <Instruments />
+        {ui.stop.value !== null && <Chart ctl={ctl} />}
+      </div>
+      <CameraControls ctl={ctl} />
       <ReplayBar ctl={ctl} />
-      <GuidePanel ctl={ctl} />
       <Dialogs ctl={ctl} />
       <Loader />
     </>

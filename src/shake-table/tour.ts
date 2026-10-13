@@ -18,7 +18,7 @@ export interface Stop {
 export const TAG_NAMES: Record<Tag, string> = { real: 'Real world', model: 'Model' };
 
 export const STOPS: Stop[] = [
-  { title: 'A table that makes earthquakes', tags: ['real'], cfg: { type: 'bare', mode: 'steady', f: 3.0, g: 0.15, cam: 'orbit', stress: false },
+  { title: 'A table that makes earthquakes', tags: ['real'], cfg: { type: 'bare', mode: 'steady', f: 3.0, g: 0.15, cam: 'orbit', stress: true },
     body: `<p>Engineers test buildings by bolting them to a steel table and pushing the table with hydraulic actuators. The motion can copy a real earthquake.</p><p>The largest table in the world is E-Defense in Miki, Japan. It is 20 m by 15 m and can carry 1,200 tonnes. In 2009 it shook a full-size seven-story wood building.</p><p>This lab is smaller. The building is a three-story steel frame with concrete floors and furniture inside.</p>`,
     notice: 'Run the test and watch the two chrome rods on the left. What moves with the table, and what lags behind?' },
   { title: "Find the building's beat", tags: ['model'], cfg: { type: 'bare', mode: 'sweep', g: 0.2, cam: 'side', stress: true },
@@ -30,10 +30,10 @@ export const STOPS: Stop[] = [
   { title: 'Brace it', tags: ['model', 'real'], cfg: { type: 'braced', mode: 'sweep', g: 0.2, cam: 'side', stress: true },
     body: `<p>Steel X-braces make each story about six times stiffer. A stiffer building has a faster natural beat, so the danger zone moves up the frequency scale.</p><p>Many real steel buildings use braced frames for this reason.</p>`,
     notice: 'Where does the roof swing hardest now? Did any story crack, and did the building stay up?' },
-  { title: 'Float it', tags: ['model', 'real'], cfg: { type: 'isolated', mode: 'quake', g: 0.35, cam: 'ride', stress: false },
+  { title: 'Float it', tags: ['model', 'real'], cfg: { type: 'isolated', mode: 'quake', g: 0.35, cam: 'ride', stress: true },
     body: `<p>Base isolation sets the whole building on rubber bearings. The bearings are soft side to side, so the ground moves under the building while the floors above move slowly and gently.</p><p>San Francisco City Hall was retrofitted with base isolators after the 1989 Loma Prieta earthquake.</p><p>The camera rides along on floor 2.</p>`,
     notice: 'Watch the crates on floor 2. Then switch to Orbit and watch the black bearings. Where did the motion go?' },
-  { title: 'What falls first', tags: ['real', 'model'], cfg: { type: 'bare', mode: 'quake', g: 0.4, cam: 'orbit', stress: false },
+  { title: 'What falls first', tags: ['real', 'model'], cfg: { type: 'bare', mode: 'quake', g: 0.4, cam: 'orbit', stress: true },
     body: `<p>The block wall on the right has no steel inside. Furniture, shelves and ceilings are not part of the structure either. Engineers call these nonstructural parts.</p><p>In studies of offices, hotels and hospitals, nonstructural parts made up about half to 70 percent of a building's cost. They are also what hurts people in a room.</p>`,
     notice: 'After the quake, press Replay and pick 0.25x. Name three things in this scene that would hurt someone standing nearby.' },
 ];

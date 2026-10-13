@@ -4,11 +4,15 @@
  */
 import { Synth } from '../core/audio/synth.ts';
 import type { BuildingType } from './constants.ts';
+import { BUILDINGS } from './constants.ts';
 import { CHART_SECONDS, type Lab } from './lab.ts';
+import { downloadReport, emptyNotebook, saveNotebook, type Notebook, type RunResult } from './notebook.ts';
 import type { ShakeMode } from './motion/table.ts';
 import type { CameraMode, LabView } from './scene/view.ts';
 import { STOPS } from './tour.ts';
-import { toast, ui, type StoryStatus } from './ui/store.ts';
+import { toast, ui, type DialogName, type StoryStatus } from './ui/store.ts';
+
+const MODE_NAMES = { steady: 'Steady', sweep: 'Sweep', quake: 'Quake' } as const;
 
 export class Controller {
   readonly synth = new Synth();
@@ -16,6 +20,9 @@ export class Controller {
   private uiT = 0;
   private peakAcc = 0;
   private pendingStart: ReturnType<typeof setTimeout> | undefined;
+  /** The run in progress: which guided test it belongs to, and what it has measured so far. */
+  private run: { stop: number | null; natBeat: number; peakTableG: number; failT: number | null; ended: number | null } | null = null;
+  private bannerTimer: ReturnType<typeof setTimeout> | undefined;
   chartCanvas: HTMLCanvasElement | null = null;
 
   constructor(readonly lab: Lab, readonly view: LabView) {
@@ -24,8 +31,15 @@ export class Controller {
       const slow = ui.slow.value || replaying;
       if (e.kind === 'impact') this.synth.impact(e.p, e.heavy, slow);
       else if (e.kind === 'crack') this.synth.crack(0.6);
-      else { this.synth.crack(1); this.synth.impact(1, true, slow); }
+      else {
+        this.synth.crack(1);
+        this.synth.impact(1, true, slow);
+        if (!replaying) this.onFailure(e.story, e.t);
+      }
     });
+    view.stress = ui.stress.value;
+    view.drama = ui.drama.value;
+    addEventListener('keydown', (e) => this.onKey(e));
   }
 
   // ---------------------------------------------------------------- controls
@@ -71,6 +85,10 @@ export class Controller {
     this.lab.start();
     ui.peakNote.value = '';
     ui.shaking.value = true;
+    ui.banner.value = null;
+    const stop = ui.stop.value;
+    this.run = { stop, natBeat: this.lab.sim.natBeat(), peakTableG: 0, failT: null, ended: null };
+    if (stop !== null && ui.poeStage.value < 1) ui.poeStage.value = 1;
   }
 
   stop(): void {
@@ -128,6 +146,7 @@ export class Controller {
   exitReplay(): void {
     this.lab.exitReplay();
     ui.replayOn.value = false;
+    if (ui.banner.value?.title === 'INSTANT REPLAY') ui.banner.value = null;
   }
 
   toggleReplay(): void {
@@ -153,6 +172,10 @@ export class Controller {
 
   showStop(i: number): void {
     const n = Math.max(0, Math.min(STOPS.length - 1, i));
+    if (ui.stop.value !== n) {
+      const t = ui.notebook.value.tests[n]!;
+      ui.poeStage.value = t.prediction === null ? 0 : t.result === null ? 1 : t.explanation ? 3 : 2;
+    }
     ui.stop.value = n;
     history.replaceState(null, '', `#stop=${n + 1}`);
   }
@@ -176,6 +199,169 @@ export class Controller {
     this.pendingStart = setTimeout(wait, 50);
   }
 
+  setDrama(on: boolean): void {
+    ui.drama.value = on;
+    this.view.drama = on;
+  }
+
+  // ---------------------------------------------------------------- navigation
+
+  openDialog(name: DialogName | null): void {
+    ui.dialog.value = name;
+  }
+
+  /** Free mode: closes the guided test panel. */
+  explore(): void {
+    ui.stop.value = null;
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  toggleFullscreen(): void {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen?.();
+  }
+
+  orbit(angle: number): void {
+    ui.cam.value = 'orbit';
+    this.view.orbitBy(angle);
+  }
+
+  zoom(factor: number): void {
+    ui.cam.value = 'orbit';
+    this.view.zoomBy(factor);
+  }
+
+  resetView(): void {
+    ui.cam.value = 'orbit';
+    this.view.resetView();
+  }
+
+  private onKey(e: KeyboardEvent): void {
+    const t = e.target as HTMLElement | null;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    if (ui.dialog.value && e.key !== '?') return;
+    const k = e.key;
+    const act: Record<string, () => void> = {
+      ' ': () => this.toggleShake(),
+      r: () => this.setType(ui.type.value),
+      '1': () => this.setType('bare'),
+      '2': () => this.setType('braced'),
+      '3': () => this.setType('isolated'),
+      ArrowLeft: () => this.orbit(0.12),
+      ArrowRight: () => this.orbit(-0.12),
+      ArrowUp: () => this.zoom(0.9),
+      ArrowDown: () => this.zoom(1.1),
+      '+': () => this.zoom(0.9),
+      '=': () => this.zoom(0.9),
+      '-': () => this.zoom(1.1),
+      '0': () => this.resetView(),
+      c: () => this.setCamera(ui.cam.value === 'orbit' ? 'side' : ui.cam.value === 'side' ? 'ride' : 'orbit'),
+      s: () => this.setStress(!ui.stress.value),
+      m: () => this.setSlow(!ui.slow.value),
+      p: () => this.toggleReplay(),
+      n: () => this.openDialog('notebook'),
+      g: () => this.showStop(ui.stop.value ?? 0),
+      f: () => this.toggleFullscreen(),
+      '?': () => this.openDialog(ui.dialog.value === 'help' ? null : 'help'),
+      h: () => this.openDialog('help'),
+    };
+    const fn = act[k.length === 1 ? k.toLowerCase() : k];
+    if (!fn) return;
+    e.preventDefault();
+    fn();
+  }
+
+  // ---------------------------------------------------------------- notebook
+
+  private updateNotebook(fn: (n: Notebook) => void): void {
+    const n = structuredClone(ui.notebook.value);
+    fn(n);
+    ui.notebook.value = n;
+    saveNotebook(n);
+  }
+
+  setPrediction(stop: number, choice: number): void {
+    this.updateNotebook((n) => { n.tests[stop]!.prediction = choice; });
+  }
+
+  setExplanation(stop: number, text: string): void {
+    this.updateNotebook((n) => { n.tests[stop]!.explanation = text; });
+  }
+
+  setStudent(name: string): void {
+    this.updateNotebook((n) => { n.student = name; });
+  }
+
+  clearNotebook(): void {
+    ui.notebook.value = emptyNotebook();
+    saveNotebook(ui.notebook.value);
+  }
+
+  downloadReport(): void {
+    downloadReport(ui.notebook.value);
+  }
+
+  setPoeStage(stage: number): void {
+    ui.poeStage.value = Math.max(0, Math.min(3, stage));
+  }
+
+  // ---------------------------------------------------------------- drama
+
+  private onFailure(story: string, t: number): void {
+    if (this.run && this.run.failT === null) this.run.failT = t;
+    if (!ui.drama.value) return;
+    ui.banner.value = { title: 'COLLAPSE', detail: `${story} gave way` };
+    clearTimeout(this.bannerTimer);
+    this.bannerTimer = setTimeout(() => { if (ui.banner.value?.title === 'COLLAPSE') ui.banner.value = null; }, 3500);
+  }
+
+  /** Watches the run in progress and files its result when the table has stopped. */
+  private trackRun(): void {
+    const run = this.run;
+    if (!run || this.lab.replay.on) return;
+    const sim = this.lab.sim, d = sim.drive;
+    run.peakTableG = Math.max(run.peakTableG, d.accG);
+    if (!(d.done && d.env <= 0)) return;
+    run.ended ??= sim.simT;
+    if (sim.simT - run.ended < 1.5) return; // let falling things land
+    this.run = null;
+    const r: RunResult = {
+      at: new Date().toISOString(),
+      building: BUILDINGS[sim.type].label,
+      shaking: MODE_NAMES[d.mode],
+      strength: d.g,
+      frequency: d.mode === 'steady' ? d.f : null,
+      peakRoofCm: sim.peakRoof * 100,
+      peakRoofHz: d.mode === 'sweep' ? sim.peakF : d.mode === 'steady' ? d.f : null,
+      peakTableG: run.peakTableG,
+      naturalBeatHz: run.natBeat,
+      failure: sim.failNote,
+      wallBlocksDown: sim.wallBlocksDown(),
+    };
+    if (run.stop !== null) {
+      this.updateNotebook((n) => { n.tests[run.stop!]!.result = r; });
+      if (ui.stop.value === run.stop) ui.poeStage.value = Math.max(ui.poeStage.value, 2);
+    } else {
+      this.updateNotebook((n) => { n.explore.push(r); n.explore = n.explore.slice(-20); });
+    }
+    toast('Results saved to your notebook', 2500);
+    if (run.failT !== null && ui.drama.value) this.instantReplay(run.failT);
+  }
+
+  /** Slow-motion replay from just before a collapse. */
+  instantReplay(failT: number): void {
+    if (!this.lab.enterReplay()) return;
+    this.view.clearDust();
+    this.lab.seekReplayTime(failT - 2);
+    this.setReplaySpeed(0.25);
+    ui.replayOn.value = true;
+    ui.replayPlaying.value = true;
+    ui.banner.value = { title: 'INSTANT REPLAY', detail: 'The collapse at a quarter speed. Press Live to go back.' };
+    clearTimeout(this.bannerTimer);
+    this.bannerTimer = setTimeout(() => { if (ui.banner.value?.title === 'INSTANT REPLAY') ui.banner.value = null; }, 4000);
+  }
+
   // ---------------------------------------------------------------- loop
 
   frame(now: number): void {
@@ -188,6 +374,8 @@ export class Controller {
     const d = lab.sim.drive;
     this.synth.tick(d.accG, d.on || d.env > 0.01, !lab.replay.on);
     view.updateCamera(lab);
+    view.updateBeacon(!lab.replay.on && (d.on || d.env > 0.01), lab.sim.simT);
+    this.trackRun();
     if (now - this.uiT > 100) { this.uiT = now; this.uiTick(); }
     view.render();
   }
@@ -215,6 +403,7 @@ export class Controller {
         : `Biggest roof swing: ${(sim.peakRoof * 100).toFixed(0)} cm`;
     }
     ui.shaking.value = d.on;
+    ui.tableLive.value = d.on || d.env > 0.01;
     this.drawChart();
   }
 

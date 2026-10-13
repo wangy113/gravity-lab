@@ -1,6 +1,6 @@
 # Shake Table Lab architecture
 
-**Status:** accepted. Phase 0 is done (section 16.1). Phase 1 is next.
+**Status:** accepted. Phases 0 and 1 are done (sections 16.1 and 16.2). Parts of phases 2 to 4 were pulled forward for a demo (16.2).
 
 **Date:** 2026-10-13
 
@@ -801,6 +801,29 @@ Notes for phase 1:
 - **The furniture stays put at rest.** The largest movement of the 13 props was 0.6 cm.
 - **Rapier logs one warning:** "using deprecated parameters for the initialization function", from `RAPIER.init({})`.
 - **Rerunning.** The manual "Characterize prototype" workflow reruns the harness in GitHub Actions.
+
+### 16.2 Phase 1 results (2026-10-13)
+
+The prototype now runs as modules (`src/`), and its parity is tested (`tests/scenarios/parity.test.ts`). All recorded scenarios match: the sweep failure is at 1.138 Hz against 1.14 Hz, and the quake failure at 6.49 s against 6.5 s. Drift and damage are identical before the first failure. The port even reproduced the prototype's wall collapse to the millimetre on Rapier 0.19.3. The app makes no external requests, which the browser tests check.
+
+Where phase 1 departed from the plan, and why:
+
+- **Rapier went to 0.21 in phase 1, not phase 2.** The wall bug is solver creep in Rapier 0.19.3: an awake stack of blocks walks outward and topples after about 5 s, even alone on the table. Sleeping only hid it. Rapier 0.21 fixes it, and the upgrade was its own commit after the 0.19.3 port had passed parity. The cost is speed. A collapse costs about 1.5 ms per physics step against 0.7 ms on 0.19.3. Letting props sleep cut a resting scene from 1.3 to 0.15 ms per step. Measuring on a Chromebook is still a phase 2 task.
+- **Guided test 6 shakes at 0.4 g.** At 0.3 g the wall now stands. At 0.4 g the first story fails at 6.1 s, the furniture tumbles, and the wall comes down at 8.2 s.
+- **Impacts keep the prototype's velocity test** instead of Rapier contact-force events, judged over a fixed 1/60 s of simulated time. Contact forces also fire for resting weight (a fallen slab). The fixed window removes the frame-rate dependence, which was the actual bug.
+- **A second bug from the prototype is fixed.** The quake read its displacement at `floor(t / DT)`, and `t` is a running sum, so the index sometimes repeated and then skipped a step. The table stalled for one step and then jumped, a spike of about 6 g. The quake is now indexed by an integer step count. All parity scenarios still pass.
+- **Assets are fetched at build time, not committed yet.** CI downloads them (md5-checked against `assets/assets.lock.json`) and caches them. Committing raw 1k files now would put about 51 MB of history in the repository just before phase 2 replaces them with optimized copies.
+- **The replay buffer holds 40 s, up from 15 s.** In the quake the collapse happens about 19 s before the run ends, outside a 15 s window.
+
+Pulled forward for a demo of the lab in an online course, ahead of phases 3 and 4:
+
+- **Navigation.** A top menu with Guided lab, Explore, Notebook, For instructors and Help. A start screen with three choices. In guided mode the lesson panel replaces the control room, because each test sets itself up.
+- **Explicit pedagogy.** Every guided test shows a learning objective and follows Predict, Test, Observe, Explain (`src/shake-table/pedagogy.ts`). The prediction is required before testing. Results are filed automatically and compared with the prediction. The explanation uses claim, evidence and reasoning.
+- **Lab notebook.** Predictions, measured results and explanations, kept in the browser, downloadable as an HTML lab report to print or upload to Canvas.
+- **For instructors page.** Objectives mapped to tests, the teaching model, how to run it in Canvas, a short rubric, and access notes.
+- **Controls.** Camera buttons (turn, zoom, reset), keyboard shortcuts listed in Help, and full screen.
+- **Stress colors** use the prototype's green to red ramp, are on by default, and have a legend. This deliberately keeps the original ramp, so the color-blind-safe ramp in 6.4 waits for the accessibility pass. Story pills still show words, so color is never the only signal.
+- **Dramatic effects, on by default and switchable in Help.** These are stronger camera shake, a flashing beacon and a "TABLE LIVE" sign while the table runs, and a "COLLAPSE" banner. After a collapse, an automatic slow-motion replay starts 2 s before the failure. Under reduced motion the shake, flashing and banner animation are off.
 
 ## 17. Risks
 

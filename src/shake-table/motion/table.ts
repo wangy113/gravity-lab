@@ -20,6 +20,7 @@ export class TableDrive {
   on = false;
   done = false;
   t = 0; // time since Shake, s
+  private n = 0; // steps since Shake: indexes the quake record exactly
   env = 0; // ramp envelope, 0..1
   target = 0;
   phase = 0;
@@ -29,12 +30,12 @@ export class TableDrive {
   quake: Float32Array | null = null;
 
   reset(): void {
-    this.on = false; this.done = false; this.t = 0; this.env = 0; this.target = 0; this.phase = 0;
+    this.on = false; this.done = false; this.t = 0; this.n = 0; this.env = 0; this.target = 0; this.phase = 0;
     this.x = 0; this.x1 = 0; this.x2 = 0; this.fNow = 0; this.accG = 0;
   }
 
   start(): void {
-    this.on = true; this.t = 0; this.env = this.mode === 'quake' ? 1 : 0; this.target = 1; this.phase = 0; this.done = false;
+    this.on = true; this.t = 0; this.n = 0; this.env = this.mode === 'quake' ? 1 : 0; this.target = 1; this.phase = 0; this.done = false;
     if (this.mode === 'quake') this.quake = makeQuake(this.g, DT, STROKE);
   }
 
@@ -56,12 +57,15 @@ export class TableDrive {
       x = ampFor(f, this.g) * this.env * Math.sin(this.phase);
       if (this.on && this.t > SWEEP.seconds) this.stop();
     } else if (this.quake) {
-      const i = Math.min(this.quake.length - 1, Math.floor(this.t / DT));
+      // The prototype used floor(t / DT), but t is a running sum of DT, so rounding made the
+      // index repeat one step and skip the next: the table stalled for a step, then jumped
+      // (a spike of about 6 g at 0.4 g). An integer step count has no drift.
+      const i = Math.min(this.quake.length - 1, this.n);
       x = this.quake[i]! * this.env;
       this.fNow = 0;
       if (this.on && i >= this.quake.length - 1) this.stop();
     }
-    if (this.on || this.env > 0) this.t += DT;
+    if (this.on || this.env > 0) { this.t += DT; this.n++; }
     const rate = DT / 1.5;
     this.env += Math.sign(this.target - this.env) * Math.min(rate, Math.abs(this.target - this.env));
     if (!this.on && this.env <= 0 && this.mode !== 'quake') x = 0;

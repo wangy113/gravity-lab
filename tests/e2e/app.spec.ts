@@ -46,13 +46,44 @@ test('a deep link opens and runs a guided test', async ({ page }) => {
   // Drawing stays on here: headless Chrome stops scheduling frames when nothing on screen
   // changes, and the tour waits 0.7 s of simulated time before it starts the table.
   await expect(page.locator('#pTitle')).toHaveText('Float it');
-  await expect(page.locator('#shakeBtn')).toHaveText('Stop', { timeout: 60_000 });
-  await expect(page.locator('#segType button[data-v="isolated"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.live')).toBeVisible({ timeout: 60_000 });
+  expect(await page.evaluate(() => (window as any).__lab.lab.sim.type)).toBe('isolated');
 });
 
 test('the text version lists all six tests', async ({ page }) => {
   await boot(page);
   await page.keyboard.press('Escape');
+  await page.click('#helpBtn');
   await page.click('#textBtn');
   await expect(page.locator('#textBody h2')).toHaveCount(6);
+});
+
+test('the guided lab asks for a prediction first and keeps it in the notebook', async ({ page }) => {
+  await boot(page);
+  await page.click('#introGuide');
+  await expect(page.locator('#pTitle')).toHaveText('A table that makes earthquakes');
+  await expect(page.locator('#toTest')).toBeDisabled();
+  await page.getByLabel('Move with the table and barely bend').check();
+  await page.click('#toTest');
+  await expect(page.locator('#pRun')).toHaveText('Run this test');
+  await page.click('#notebookBtn');
+  await expect(page.locator('#notebookM')).toContainText('Prediction: Move with the table and barely bend');
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
+  await page.keyboard.press('Escape');
+  await page.click('#notebookBtn');
+  await expect(page.locator('#notebookM')).toContainText('Prediction: Move with the table and barely bend');
+});
+
+test('keyboard shortcuts work and are listed in Help', async ({ page }) => {
+  await boot(page);
+  await page.click('#introFree');
+  await page.keyboard.press('2');
+  await expect(page.locator('#segType button[data-v="braced"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('s');
+  await expect(page.locator('#stressBtn')).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('?');
+  await expect(page.locator('#helpM')).toBeVisible();
+  await expect(page.locator('#helpM kbd').first()).toHaveText('Space');
 });

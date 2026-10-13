@@ -36,6 +36,7 @@ export interface BodyRec {
   mass: number;
   shape: BodyShape;
   pv: V3; // velocity at the last impact check
+  y0: number; // height when created, m
   cool: number; // impact cooldown, s
 }
 
@@ -167,6 +168,11 @@ export class ShakeTableSim {
     return top.body.translation().x - this.table.body.translation().x - X0;
   }
 
+  /** How many wall blocks have dropped more than 10 cm from where they were built. */
+  wallBlocksDown(): number {
+    return this.bodies.filter((o) => o.kind === 'block' && o.y0 - o.body.translation().y > 0.1).length;
+  }
+
   /** First natural frequency of the current (damaged) building, Hz, or 0 after a failure. */
   natBeat(): number {
     if (this.anyFailed) return 0;
@@ -185,7 +191,7 @@ export class ShakeTableSim {
   // ---------------------------------------------------------------- building
 
   private register(body: RigidBody, mass: number, kind: BodyKind, shape: BodyShape): BodyRec {
-    const o: BodyRec = { id: this.bodies.length, body, mass, kind, shape, pv: { x: 0, y: 0, z: 0 }, cool: 0 };
+    const o: BodyRec = { id: this.bodies.length, body, mass, kind, shape, pv: { x: 0, y: 0, z: 0 }, cool: 0, y0: body.translation().y };
     this.bodies.push(o);
     return o;
   }

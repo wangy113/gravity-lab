@@ -1,8 +1,10 @@
 import { signal } from '@preact/signals';
 import type { BuildingType } from '../constants.ts';
 import type { ShakeMode } from '../motion/table.ts';
+import { loadNotebook, type Notebook } from '../notebook.ts';
 import type { CameraMode } from '../scene/view.ts';
 
+export type DialogName = 'intro' | 'text' | 'about' | 'help' | 'notebook' | 'instructors';
 export type StoryStatus = { label: string; status: 'ok' | 'crack' | 'fail'; detail: string };
 
 /** UI state. The lab and view are the source of truth for physics; these are the controls and readouts. */
@@ -12,11 +14,13 @@ export const ui = {
   f: signal(1.2),
   g: signal(0.25),
   cam: signal<CameraMode>('orbit'),
-  stress: signal(false),
+  stress: signal(true),
+  drama: signal(true),
   slow: signal(false),
   sound: signal(true),
   hall: signal('aircraft'),
   shaking: signal(false),
+  tableLive: signal(false),
 
   // readouts, refreshed 10 times a second
   tableF: signal('0.00 Hz'),
@@ -40,7 +44,10 @@ export const ui = {
   loadMsg: signal('Starting the physics engine'),
   toast: signal(''),
   stop: signal<number | null>(null), // open guided test, or null
-  dialog: signal<'intro' | 'text' | 'about' | null>(null),
+  poeStage: signal(0), // 0 Predict, 1 Test, 2 Observe, 3 Explain
+  dialog: signal<DialogName | null>(null),
+  banner: signal<{ title: string; detail: string } | null>(null),
+  notebook: signal<Notebook>(loadNotebook()),
   credits: signal<{ name: string; type: string; authors: string[] }[]>([]),
 };
 

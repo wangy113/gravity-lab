@@ -34,7 +34,9 @@ export class LabView {
   readonly controls: OrbitControls;
   readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   camMode: CameraMode = 'orbit';
-  stress = false;
+  stress = true;
+  /** Stronger camera shake, a warning beacon and bigger dust, for demos. */
+  drama = true;
   /** Seconds of the current run, shown on the fixed cameras' tag. */
   kickCam = 0;
 
@@ -58,6 +60,8 @@ export class LabView {
   private readonly camOffset = new THREE.Vector3();
   private readonly dust: { s: THREE.Sprite; v: THREE.Vector3; life: number; max: number; size: number }[] = [];
   private dustI = 0;
+  private beaconLight!: THREE.PointLight;
+  private beaconLamp!: THREE.MeshStandardMaterial;
 
   constructor(canvas: HTMLCanvasElement) {
     const r = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -221,6 +225,16 @@ export class LabView {
       o.rotation.y = ry;
       this.stat.add(o);
     }
+    // Warning beacon on the reaction wall: flashes while the table is live.
+    this.beaconLamp = new THREE.MeshStandardMaterial({ color: 0x551010, emissive: 0xff2a1a, emissiveIntensity: 0, roughness: 0.4 });
+    const lamp = mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.22, 24), this.beaconLamp);
+    lamp.position.set(-5.2, 1.66, 3.9);
+    const base = mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.06, 24), M.dark);
+    base.position.set(-5.2, 1.58, 3.9);
+    this.beaconLight = new THREE.PointLight(0xff3020, 0, 9, 1.6);
+    this.beaconLight.position.set(-5.2, 1.9, 3.9);
+    this.stat.add(lamp, base);
+    this.scene.add(this.beaconLight);
     const spot = new THREE.SpotLight(0xfff0dc, 45, 30, 0.38, 0.6, 1.4);
     spot.position.set(7.2, 2.2, 4.2);
     spot.target.position.set(-0.8, 3.2, 0);
@@ -414,8 +428,9 @@ export class LabView {
   /** Dust and camera kick for a simulation event (sound is handled by the audio module). */
   onEvent(e: SimEvent): void {
     const [x, y, z] = e.pos;
-    if (e.kind === 'impact') { if (e.heavy) this.puff(x, y, z, 26, 1.6); else if (e.p > 0.5) this.puff(x, y, z, 4, 0.6); }
-    else if (e.kind === 'fail') { this.puff(x, y, z, 40, 2.2); this.kickCam = 1; }
+    const k = this.drama ? 1.6 : 1;
+    if (e.kind === 'impact') { if (e.heavy) this.puff(x, y, z, Math.round(26 * k), 1.6 * k); else if (e.p > 0.5) this.puff(x, y, z, 4, 0.6); }
+    else if (e.kind === 'fail') { this.puff(x, y, z, Math.round(40 * k), 2.2 * k); this.kickCam = this.drama ? 2.5 : 1; }
   }
 
   updateDust(dt: number): void {
@@ -473,11 +488,46 @@ export class LabView {
     this.camOffset.set(0, 0, 0);
     if (!this.reduceMotion && !lab.replay.on) {
       const acc = lab.sim.drive.accG;
-      const k = (this.camMode === 'orbit' ? acc * 0.05 : this.camMode === 'side' ? acc * 0.015 : 0) + this.kickCam * 0.12;
+      const d = this.drama ? 2.4 : 1;
+      const k = ((this.camMode === 'orbit' ? acc * 0.05 : this.camMode === 'side' ? acc * 0.015 : 0) + this.kickCam * 0.12) * d;
       if (k > 0.0005) this.camOffset.set((Math.random() - 0.5) * k, (Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
     }
-    this.kickCam *= 0.9;
+    this.kickCam *= this.drama ? 0.93 : 0.9;
     this.camera.position.add(this.camOffset);
+  }
+
+  /** Beacon flashes twice a second while the table runs (steady under reduced motion). */
+  updateBeacon(live: boolean, seconds: number): void {
+    if (!this.beaconLight) return;
+    const on = live && (this.reduceMotion || Math.floor(seconds * 4) % 2 === 0);
+    this.beaconLight.intensity = on ? 30 : 0;
+    this.beaconLamp.emissiveIntensity = on ? 4 : live ? 0.6 : 0;
+  }
+
+  /** Turns the orbit camera around the building (radians). */
+  orbitBy(angle: number): void {
+    this.toOrbit();
+    const off = this.camera.position.clone().sub(this.controls.target);
+    off.applyAxisAngle(this.UP, angle);
+    this.camera.position.copy(this.controls.target).add(off);
+  }
+
+  /** Moves the orbit camera closer (factor < 1) or farther (factor > 1). */
+  zoomBy(factor: number): void {
+    this.toOrbit();
+    const off = this.camera.position.clone().sub(this.controls.target);
+    const len = Math.min(40, Math.max(3, off.length() * factor));
+    this.camera.position.copy(this.controls.target).add(off.setLength(len));
+  }
+
+  resetView(): void {
+    this.toOrbit();
+    this.camera.position.set(12.5, 3.3, 14.5);
+    this.controls.target.set(-0.3, 2.7, 0);
+  }
+
+  private toOrbit(): void {
+    if (this.camMode !== 'orbit') this.setCamera('orbit');
   }
 
   render(): void {

@@ -99,3 +99,101 @@
   #toast { position: fixed; left: 50%; top: 130px; transform: translateX(-50%); background: rgba(0,0,0,.7); padding: 8px 16px; border-radius: 999px; font-size: 15px; z-index: 8; pointer-events: none; }
 .dialog-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .behind { position: fixed; left: 50%; top: 170px; transform: translateX(-50%); z-index: 3; font-size: 14px; color: var(--amber); }
+
+/* ---------------------------------------------------------------- navigation */
+.nav { display: flex; gap: 2px; padding: 4px; border-radius: 12px; }
+.navbtn { background: transparent; border: 0; border-radius: 9px; padding: 8px 12px; font-weight: 600; font-size: 15px; cursor: pointer; color: var(--ink); }
+.navbtn:hover { background: rgba(255,255,255,.1); }
+.navbtn[aria-pressed="true"] { background: var(--amber); color: #1b1203; }
+.badge { display: inline-block; margin-left: 4px; padding: 0 7px; border-radius: 999px; background: rgba(255,255,255,.16); font-size: 12px; font-family: "JetBrains Mono", monospace; }
+.navbtn[aria-pressed="true"] .badge { background: rgba(0,0,0,.18); }
+.live { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px; background: rgba(255,77,61,.92); color: #fff; font-weight: 700; letter-spacing: .12em; font-size: 13px; }
+.live i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: blink 1s steps(2) infinite; }
+
+/* ---------------------------------------------------------------- right column: instruments and the guided lab */
+.rightcol { position: fixed; right: 16px; top: 78px; bottom: 16px; width: 350px; display: flex; flex-direction: column; gap: 10px; z-index: 5; pointer-events: none; }
+.rightcol > * { pointer-events: auto; }
+.rightcol #readouts { position: static; width: auto; right: auto; top: auto; }
+.rightcol #readouts { flex: none; padding: 12px 14px; }
+.rightcol .panel { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; padding: 14px 16px; }
+.rightcol .ro { padding: 3px 0; }
+.rightcol .ro b { font-size: 18px; }
+.objective { background: rgba(76,201,240,.12); border-left: 4px solid var(--cyan); padding: 6px 10px; border-radius: 6px; font-size: 15px; margin: 4px 0 10px; }
+.dots { display: flex; gap: 6px; list-style: none; padding: 0; margin: 8px 0 2px; }
+.dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); background: transparent; cursor: pointer; padding: 0; }
+.dot.done { background: var(--green); border-color: var(--green); }
+.dot.here { outline: 2px solid var(--amber); outline-offset: 2px; }
+.poe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; list-style: none; padding: 4px; margin: 0 0 12px; background: rgba(0,0,0,.3); border-radius: 10px; }
+.poestep { width: 100%; background: transparent; border: 0; border-radius: 7px; padding: 7px 2px; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; }
+.poestep.past { color: var(--green); }
+.poestep.here { background: rgba(255,255,255,.92); color: #0d1216; }
+.stage h3 { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); margin: 4px 0 6px; }
+.predict { border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 12px 10px; margin: 6px 0; }
+.predict legend { font-weight: 700; padding: 0 4px; font-size: 16px; line-height: 1.35; }
+.option { display: flex; gap: 10px; align-items: center; padding: 8px 10px; margin-top: 6px; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; font-size: 15px; }
+.option:hover { background: rgba(255,255,255,.06); }
+.option.picked { border-color: var(--amber); background: rgba(255,176,32,.12); }
+.option input { accent-color: var(--amber); width: 18px; height: 18px; }
+.data { margin: 0 0 10px; padding-left: 18px; font-size: 15px; line-height: 1.5; }
+.feedback { padding: 8px 10px; border-radius: 8px; font-size: 15px; line-height: 1.45; }
+.feedback.match { background: rgba(54,212,124,.14); border-left: 4px solid var(--green); }
+.feedback.differ { background: rgba(255,176,32,.14); border-left: 4px solid var(--amber); }
+.hint { color: var(--muted); font-size: 14px; }
+textarea, input.text { width: 100%; background: rgba(0,0,0,.35); border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 10px; font-size: 15px; line-height: 1.45; color: var(--ink); }
+textarea { resize: vertical; margin-top: 4px; }
+.btn.big { padding: 12px 18px; font-size: 17px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.panel .row.foot { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 14px; }
+.panel .row.foot .btn { font-size: 13px; padding: 6px 10px; }
+
+/* ---------------------------------------------------------------- dialogs */
+.modal.wide { max-width: 900px; }
+.choices { display: grid; gap: 10px; margin: 16px 0; }
+.choice { text-align: left; border: 1px solid var(--line-2); border-radius: 14px; padding: 14px 18px; background: rgba(255,255,255,.05); cursor: pointer; display: grid; gap: 4px; }
+.choice:hover { background: rgba(255,255,255,.1); }
+.choice b { font-size: 19px; }
+.choice span { color: var(--muted); font-size: 15px; }
+.choice.primary { background: var(--amber); border-color: var(--amber); color: #1b1203; }
+.choice.primary span { color: #3a2a06; }
+.lead { font-size: 17px; }
+.model li { margin-bottom: 6px; line-height: 1.5; }
+table.runs { border-collapse: collapse; width: 100%; font-size: 15px; margin: 6px 0 10px; }
+table.runs th, table.runs td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+table.runs th { color: var(--muted); font-weight: 600; }
+kbd { font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line-2); background: rgba(255,255,255,.08); }
+.nbtest { border-top: 1px solid var(--line); padding-top: 6px; }
+.nbtest h2 { display: flex; align-items: center; gap: 10px; }
+.modal code { font-family: "JetBrains Mono", monospace; font-size: 14px; background: rgba(255,255,255,.08); padding: 1px 6px; border-radius: 5px; }
+
+/* ---------------------------------------------------------------- view controls, banner, stress legend */
+.camctl { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 6; display: flex; gap: 6px; padding: 6px; }
+.camctl .btn { min-width: 44px; min-height: 40px; font-size: 18px; padding: 6px 10px; }
+.camctl .btn:last-child { font-size: 14px; }
+#replaybar { bottom: 74px; }
+.banner { position: fixed; left: 50%; top: 92px; transform: translateX(-50%); z-index: 9; display: grid; justify-items: center; gap: 2px; padding: 12px 34px; border-radius: 14px; background: rgba(13,17,21,.86); border: 2px solid var(--amber); pointer-events: none; }
+.banner b { font-size: 40px; letter-spacing: .18em; color: var(--amber); line-height: 1; }
+.banner span { font-size: 16px; }
+.banner.alarm { border-color: var(--red); background: rgba(80,8,4,.88); animation: bannerShake .5s ease-out 3; }
+.banner.alarm b { color: #ff6a5c; }
+@keyframes bannerShake {
+  0%, 100% { transform: translateX(-50%); }
+  20% { transform: translateX(calc(-50% - 10px)) rotate(-1deg); }
+  40% { transform: translateX(calc(-50% + 9px)) rotate(1deg); }
+  60% { transform: translateX(calc(-50% - 6px)); }
+  80% { transform: translateX(calc(-50% + 4px)); }
+}
+@media (prefers-reduced-motion: reduce) { .banner.alarm, .live i { animation: none; } }
+.stresslegend { margin-top: 8px; }
+.stresslegend .ramp { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #33ff40 0%, #d6ff40 40%, #ffc040 70%, #ff1a40 100%); }
+.stresslegend .ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ---------------------------------------------------------------- left column: control room or guided lab */
+.leftcol { position: fixed; left: 16px; top: 78px; bottom: 16px; width: 320px; display: flex; flex-direction: column; gap: 10px; z-index: 5; pointer-events: none; }
+.leftcol > * { pointer-events: auto; }
+.leftcol #console, .leftcol #chartWrap, .rightcol #chartWrap { position: static; width: auto; max-height: none; left: auto; top: auto; bottom: auto; }
+.leftcol #console { flex: 0 1 auto; min-height: 0; overflow: auto; }
+.leftcol #chartWrap { flex: none; }
+.leftcol.guided { width: 400px; }
+.leftcol .panel { position: relative; width: auto; max-height: none; right: auto; bottom: auto; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 18px; }
+.rightcol { width: 320px; }
+.rightcol #chartWrap { flex: none; }
