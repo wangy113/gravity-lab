@@ -2,6 +2,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Controller } from '../controller.ts';
+import { preflightNote } from '../motion/preflight.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
 import { CameraControls, CollapseBanner, GuidePanel, HelpDialog, InstructorsDialog, NotebookDialog, StressLegend } from './panels.tsx';
 import { ui, type DialogName } from './store.ts';
@@ -42,6 +43,12 @@ function Header({ ctl }: Ctl) {
   );
 }
 
+/** Says so when the table cannot reach the strength asked for (docs/ARCHITECTURE.md 5.5). */
+function Preflight() {
+  const note = preflightNote(ui.mode.value, ui.g.value, ui.f.value);
+  return note ? <p class="preflight" id="preflightNote" role="status">{note}</p> : null;
+}
+
 function ControlRoom({ ctl }: Ctl) {
   return (
     <section id="console" class="card" aria-label="Control room">
@@ -59,6 +66,7 @@ function ControlRoom({ ctl }: Ctl) {
       <div class="group">
         <label class="lbl" for="strength">Strength <output id="gOut">{ui.g.value.toFixed(2)} g</output></label>
         <input type="range" id="strength" min="0.05" max="0.6" step="0.01" value={ui.g.value} onInput={(e) => ctl.setG(+e.currentTarget.value)} />
+        <Preflight />
       </div>
       <button type="button" id="shakeBtn" class={`shake${ui.shaking.value ? ' on' : ''}`} onClick={() => ctl.toggleShake()}>{ui.shaking.value ? 'Stop' : 'Shake'}</button>
       <div class="row3">

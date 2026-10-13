@@ -96,3 +96,14 @@ test('keyboard shortcuts work and are listed in Help', async ({ page }) => {
   await expect(page.locator('#helpM')).toBeVisible();
   await expect(page.locator('#helpM kbd').first()).toHaveText('Space');
 });
+
+test('the control room warns when the table cannot reach the strength asked for', async ({ page }) => {
+  await boot(page);
+  await dismissIntro(page);
+  await expect(page.locator('#preflightNote')).toHaveCount(0);
+  await page.locator('#freq').fill('0.5');
+  await page.locator('#strength').fill('0.6');
+  await expect(page.locator('#preflightNote')).toContainText('about 0.50 g, not 0.60 g');
+  await page.locator('#segMode button[data-v="quake"]').click();
+  await expect(page.locator('#preflightNote')).toHaveCount(0);
+});

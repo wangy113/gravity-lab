@@ -198,3 +198,4 @@ kbd { font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 2px 7p
 .rightcol { width: 320px; }
 .rightcol #chartWrap { flex: none; }
 .leftcol #console { overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; scrollbar-gutter: stable; padding-right: 8px; }
+.preflight { color: var(--amber); font-size: 13px; line-height: 1.35; margin: 6px 0 0; }
