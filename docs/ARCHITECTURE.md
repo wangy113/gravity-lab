@@ -1,6 +1,6 @@
 # Shake Table Lab architecture
 
-**Status:** proposed, for review. Nothing in this document is built yet.
+**Status:** accepted. Phase 0 is in progress (section 16).
 
 **Date:** 2026-10-13
 
@@ -758,7 +758,7 @@ A release build fails on any `needs-primary-source` entry. The San Francisco Cit
 ## 15. Build, deployment and versioning
 
 - **Build.** TypeScript, Vite, and npm with a lockfile and exact versions. No CDN at runtime.
-- **Hosting.** The static output deploys to GitHub Pages or to any static host, including a university server. GitHub Pages cannot set custom headers, and the design does not need them.
+- **Hosting.** GitHub Pages (decided), deployed by GitHub Actions from the default branch. The site is a project site under `/gravity-lab/`, so every path is relative. Any other static host would also work. GitHub Pages cannot set custom headers, and the design does not need them.
 - **Embedding.** The lab can be embedded in Canvas: it is served over HTTPS and sends no frame-blocking headers. The iframe should allow fullscreen.
 - **Caching.** A service worker caches the app and assets for repeat visits and offline use.
 - **Versions.** The app follows semver. `MODEL_VERSION` changes whenever physics results change: a new story law, new support springs, or an engine upgrade that moves scenario numbers. Runs, scenario baselines and lesson checks all record it.
@@ -801,7 +801,7 @@ Short decision records. All are proposed.
 | D3 | three.js `WebGLRenderer` for v1 | Lowest risk on Chromebook GPUs. No rendering changes during the port | `WebGPURenderer` now. Re-evaluated in phase 4 |
 | D4 | Poly Haven at build time, with optimized copies committed | No runtime dependency. Budgets are enforceable and credits are generated | The live API, which has no uptime guarantee and costs 38 MB per load. Git LFS, which GitHub Pages does not serve |
 | D5 | A simulation core free of DOM and three.js, on the main thread behind `SimHost` | Testable in Node. A worker stays possible later | A worker now, which adds complexity before there is evidence it is needed |
-| D6 | TypeScript, Vite, and a static site on GitHub Pages | Simple to host, and works in Canvas | A server-rendered app |
+| D6 | TypeScript, Vite, and a static site on GitHub Pages (hosting confirmed by the owner) | Simple to host, and works in Canvas | A server-rendered app |
 | D7 | Preact, signals, uPlot and native dialogs | Small, accessible and familiar | Plain DOM code, which does not scale to the new panels. Large UI kits |
 | D8 | Content as YAML with a schema and a lint | Non-developers can edit lessons. Writing rules and sources are enforced | Content inside the code |
 | D9 | Physics identical across quality tiers | Results never depend on the device | Fewer debris pieces or physics steps on Low |
@@ -814,7 +814,7 @@ Short decision records. All are proposed.
 1. **Audience.** Who are the students, and in which course? The answer sets the math depth: spectra and hysteresis loops, or only peaks and charts.
 2. **Objective.** Which course objective should the lab serve first? Section 8.9 has drafts.
 3. **Canvas.** Is Canvas level 1 enough, or do scores need to reach the gradebook? Level 2 usually needs a SCORM tool enabled in Canvas.
-4. **Hosting.** Will it be hosted on GitHub Pages or on a university server?
+4. **Hosting.** Decided: GitHub Pages, deployed from the default branch by `.github/workflows/ci.yml`.
 5. **Devices.** Which Chromebook models, or what minimum spec, must be supported? Phase 1 needs one to measure on.
 6. **Recorded earthquakes.** May the lab include recorded earthquakes, for example El Centro 1940 or Northridge 1994, with sources checked like other Real world claims?
 7. **More labs.** Is this the first of several labs in gravity-lab? If so, the `core` and `shake-table` split becomes a package split.

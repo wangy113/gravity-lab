@@ -1,0 +1,24 @@
+{
+  "name": "gravity-lab",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Shake Table Lab: an earthquake shake table lab built on three.js, Poly Haven and Rapier",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "characterize": "node scripts/characterize-prototype.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.20.5",
+    "typescript": "6.0.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  }
+}
