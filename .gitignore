@@ -1,6 +1,6 @@
-node_modules/
-dist/
 .cache/
-test-results/
+dist/
+node_modules/
 playwright-report/
 public/assets/
+test-results/

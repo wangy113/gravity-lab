@@ -4,22 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Shake Table Lab</title>
-<style>
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0e11; color: #eef2f5; font: 18px/1.5 system-ui, sans-serif; }
-  main { max-width: 36rem; padding: 24px; }
-  h1 { margin: 0 0 8px; font-size: 28px; }
-  p { color: #a3b2be; }
-  output { font-family: ui-monospace, monospace; color: #ffb020; }
-  a { color: #4cc9f0; }
-</style>
+<meta name="description" content="Build, shake, break and replay a three-story building on a photoreal earthquake shake table. Three.js, Poly Haven and Rapier physics." />
 </head>
 <body>
-<main>
-  <h1>Shake Table Lab</h1>
-  <p>The lab is being rebuilt from the prototype. The plan is in <a href="https://github.com/wangy113/gravity-lab/blob/HEAD/docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a>.</p>
-  <p><a href="./prototype/">Open the prototype</a></p>
-  <p>Natural beat of the bare frame (model): <output id="beat"></output></p>
-</main>
-<script type="module" src="/src/main.ts"></script>
+<canvas id="scene" aria-label="3D view of an earthquake shake table with a three-story building"></canvas>
+<div id="app"><div id="loader" role="status" aria-live="polite"><div><b>SHAKE TABLE LAB</b><div class="bar2"><i></i></div><small>Starting the physics engine</small></div></div></div>
+<script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

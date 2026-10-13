@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "characterize": "node scripts/characterize-prototype.ts",
-    "assets:sync": "node scripts/assets-sync.ts"
+    "assets:sync": "node scripts/assets-sync.ts",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

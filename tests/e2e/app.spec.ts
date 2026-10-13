@@ -1,0 +1,58 @@
+import { expect, test, type Page } from '@playwright/test';
+
+/** Software WebGL draws about one frame a second, which would starve the physics loop. Skip the draw call only. */
+async function skipDrawing(page: Page): Promise<void> {
+  await page.evaluate(() => { (window as any).__lab.view.renderer.render = () => {}; });
+}
+
+async function boot(page: Page, hash = ''): Promise<string[]> {
+  const external: string[] = [];
+  page.on('request', (r) => { if (!r.url().startsWith('http://localhost:4173')) external.push(r.url()); });
+  await page.goto(`/?test${hash}`);
+  await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
+  return external;
+}
+
+test('boots from local files only, with a modal intro', async ({ page }) => {
+  const external = await boot(page);
+  const intro = page.locator('#introM');
+  await expect(intro).toBeVisible();
+  expect(await intro.evaluate((d) => d.matches(':modal'))).toBe(true);
+  await expect(page.locator('#introGuide')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(intro).toBeHidden();
+  await expect(page.locator('#roN')).toHaveText('1.20 Hz');
+  expect(external).toEqual([]);
+});
+
+test('the quake collapses the bare frame, and replay works', async ({ page }) => {
+  await boot(page);
+  await page.click('#introFree');
+  await skipDrawing(page);
+  await page.click('#segMode button[data-v="quake"]');
+  await page.locator('#strength').fill('0.3');
+  await expect(page.locator('#gOut')).toHaveText('0.30 g');
+  await page.click('#shakeBtn');
+  await expect(page.locator('#peakNote')).toHaveText(/Story 1 failed 6\.\d s into the quake/, { timeout: 60_000 });
+  await expect(page.locator('#roD')).toHaveText('collapsed');
+  await page.click('#replayBtn');
+  await expect(page.locator('#replaybar')).toBeVisible();
+  await page.click('#rpExit');
+  await expect(page.locator('#replaybar')).toHaveCount(0);
+});
+
+test('a deep link opens and runs a guided test', async ({ page }) => {
+  await boot(page, '#stop=5&run');
+  // Drawing stays on here: headless Chrome stops scheduling frames when nothing on screen
+  // changes, and the tour waits 0.7 s of simulated time before it starts the table.
+  await expect(page.locator('#pTitle')).toHaveText('Float it');
+  await expect(page.locator('#shakeBtn')).toHaveText('Stop', { timeout: 60_000 });
+  await expect(page.locator('#segType button[data-v="isolated"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('the text version lists all six tests', async ({ page }) => {
+  await boot(page);
+  await page.keyboard.press('Escape');
+  await page.click('#textBtn');
+  await expect(page.locator('#textBody h2')).toHaveCount(6);
+});
