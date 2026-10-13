@@ -11,6 +11,8 @@ The lab is being rebuilt from a single-file proof of concept into a full lab. Th
 | `prototype/` | The proof of concept, frozen for comparison. Open `prototype/index.html` through any static server |
 | `docs/ARCHITECTURE.md` | The architecture and delivery plan |
 | `src/` | The lab: simulation core (Rapier), three.js view, Preact UI, guided lessons and notebook |
+| `src/shake-table/specimen/` | Building specifications, the compiler that turns them into floors and springs, modal analysis and the stability guard |
+| `public/assets/` | Optimized Poly Haven assets the app serves, built by `scripts/assets-build.ts` |
 | `tests/unit/`, `tests/scenarios/` | Unit and physics tests (Vitest), including parity with the prototype |
 | `tests/e2e/` | Browser tests (Playwright) |
 | `tests/scenarios/baseline.json` | What the prototype measurably does, recorded by the characterization script |
@@ -22,14 +24,17 @@ Needs Node 22.18 or later.
 
 ```sh
 npm ci              # install
-npm run assets:sync # download the Poly Haven assets (needed once)
-npm run dev         # local dev server
+npm run dev         # local dev server (the optimized assets are committed in public/assets)
 npm test            # unit and physics tests
 npm run test:e2e    # browser tests (after npm run build)
 npm run typecheck
 npm run build       # static site in dist/
+npm run assets:budget                 # check download sizes against the budgets (after npm run build)
+npm run fingerprint                   # hash the physics, to prove a refactor changes nothing
 npm run characterize -- --repeats 2   # re-measure the prototype (needs network, about 10 minutes)
 ```
+
+To change the 3D assets, edit `assets/manifest.json`, then run `npm run assets:sync` (downloads from Poly Haven, needs network) and `npm run assets:build` (writes `public/assets`).
 
 ## Hosting
 

@@ -1,6 +1,6 @@
 # Shake Table Lab architecture
 
-**Status:** accepted. Phases 0 and 1 are done (sections 16.1 and 16.2). Parts of phases 2 to 4 were pulled forward for a demo (16.2).
+**Status:** accepted. Phases 0 and 1 are done (sections 16.1 and 16.2). Phase 2 is done except instancing and the Chromebook measurement (16.3). Parts of phases 3 and 4 were pulled forward for a demo (16.2).
 
 **Date:** 2026-10-13
 
@@ -812,7 +812,7 @@ Where phase 1 departed from the plan, and why:
 - **Guided test 6 shakes at 0.4 g.** At 0.3 g the wall now stands. At 0.4 g the first story fails at 6.1 s, the furniture tumbles, and the wall comes down at 8.2 s.
 - **Impacts keep the prototype's velocity test** instead of Rapier contact-force events, judged over a fixed 1/60 s of simulated time. Contact forces also fire for resting weight (a fallen slab). The fixed window removes the frame-rate dependence, which was the actual bug.
 - **A second bug from the prototype is fixed.** The quake read its displacement at `floor(t / DT)`, and `t` is a running sum, so the index sometimes repeated and then skipped a step. The table stalled for one step and then jumped, a spike of about 6 g. The quake is now indexed by an integer step count. All parity scenarios still pass.
-- **Assets are fetched at build time, not committed yet.** CI downloads them (md5-checked against `assets/assets.lock.json`) and caches them. Committing raw 1k files now would put about 51 MB of history in the repository just before phase 2 replaces them with optimized copies.
+- **Assets were fetched at build time in phase 1, not committed.** CI downloads them (md5-checked against `assets/assets.lock.json`) and caches them. Committing raw 1k files would have put about 51 MB of history in the repository. Phase 2 commits the optimized copies instead (16.3).
 - **The replay buffer holds 40 s, up from 15 s.** In the quake the collapse happens about 19 s before the run ends, outside a 15 s window.
 
 Pulled forward for a demo of the lab in an online course, ahead of phases 3 and 4:
@@ -824,6 +824,37 @@ Pulled forward for a demo of the lab in an online course, ahead of phases 3 and 
 - **Controls.** Camera buttons (turn, zoom, reset), keyboard shortcuts listed in Help, and full screen.
 - **Stress colors** use the prototype's green to red ramp, are on by default, and have a legend. This deliberately keeps the original ramp, so the color-blind-safe ramp in 6.4 waits for the accessibility pass. Story pills still show words, so color is never the only signal.
 - **Dramatic effects, on by default and switchable in Help.** These are stronger camera shake, a flashing beacon and a "TABLE LIVE" sign while the table runs, and a "COLLAPSE" banner. After a collapse, an automatic slow-motion replay starts 2 s before the failure. Under reduced motion the shake, flashing and banner animation are off.
+
+### 16.3 Phase 2 results (2026-10-13)
+
+Each upgrade was its own commit and passed the parity scenarios on its own: Rapier 0.21 with the deterministic build (moved into phase 1, see 16.2), then three.js 0.186.1, then each feature below.
+
+- **three.js 0.186.1.** Two changes touched the lab. `PCFSoftShadowMap` was removed, so shadows use `PCFShadowMap`. The type definitions now mark a parsed HDR image's width and height as optional.
+- **Assets are optimized and committed.** `npm run assets:sync` downloads the raw files into a git-ignored cache. `npm run assets:build` writes `public/assets/`, which is committed, so CI no longer contacts Poly Haven.
+  - Props are one `.glb` each, with 512 px textures and meshopt geometry. They went from 23 MB to 2.5 MB.
+  - Building textures are 1k. They went from 7.5 MB to 1.9 MB.
+  - Every hall HDRI ships at 1k and 2k.
+- **WebP instead of KTX2 (a deviation from 7.2).** Browsers decode WebP natively, so the app needs no transcoder and the build needs no KTX-Software. The download saving is similar. KTX2 would also use less GPU memory, so it stays an option if a low-end device runs short of memory.
+- **Load budgets are checked in CI** (`npm run assets:budget`):
+
+  | Budget | Measured | Limit |
+  |---|---|---|
+  | First load, Low | 8.35 MB | 10 MB |
+  | First load, Medium and High | 13.49 MB | 20 MB |
+  | All assets | 30.15 MB | 60 MB |
+  | Largest prop | 0.39 MB | 1 MB |
+
+  The prototype loaded about 38 MB.
+- **Quality tiers.** Low, Medium, High and Auto, chosen in Help. Each tier sets the pixel density, the shadow map, the HDRI resolution and the dust count. Physics is identical at every tier. Auto guesses a tier from the device's memory and cores. It steps down if frames average over 40 ms.
+- **Render on demand.** A still scene is redrawn twice a second, not every frame.
+- **Table preflight (5.5).** The control room says when the table cannot deliver the strength asked for, for example "at 0.50 Hz it reaches about 0.50 g, not 0.60 g". Only slow steady shaking is limited. The quake reaches its full strength across the whole slider range.
+- **Specimen specification and compiler, Model 1** (`src/shake-table/specimen/`). The three buildings are now data (`spec.ts`, `PRESETS`), compiled into floors and springs (`compile.ts`). The modal analysis runs on the same specification. The refactor is bit-identical: `npm run fingerprint` hashes every body pose over quake and sweep runs of all three buildings, and the hashes did not change.
+- **Stability guard (5.3).** `stability.ts` computes every lateral, vertical and rocking mode of the compiled springs, takes each mode's damping ratio from its shape, and rejects a specimen above 70% of the limit. A unit test checks the limit against the integrator itself. The guard measures the bare and braced frames at 61% and the isolated building at 66%. A tower of 4 stories with the prototype's support springs already reaches 80%, and 6 stories reach 111%. The student builder therefore depends on Model 2's per-story support springs. Specifications outside the bounds (`LIMITS`) are rejected with plain messages too.
+
+Not done in phase 2:
+
+- **Instancing.** The scene has few enough meshes that it was not the bottleneck in software rendering. It moves to phase 4 with the full hall dressing.
+- **The 30 fps check on the baseline Chromebook.** This needs the device (question 5 in section 19).
 
 ## 17. Risks
 
