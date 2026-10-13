@@ -76,7 +76,7 @@ export class LabView {
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 1.0;
     r.shadowMap.enabled = true;
-    r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap was removed in r186
     this.renderer = r;
     this.scene.background = new THREE.Color(0x1a1e22);
     this.camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 500);

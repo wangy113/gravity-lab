@@ -209,7 +209,7 @@ function Dialogs({ ctl }: Ctl) {
         <ul id="credits">
           {ui.credits.value.map((c) => <li>{c.name} ({c.type}) by {c.authors.join(' and ')}</li>)}
         </ul>
-        <p>3D: three.js r181. Physics: Rapier 0.21. No tracking, no cookies, no login.</p>
+        <p>3D: three.js r186. Physics: Rapier 0.21. No tracking, no cookies, no login.</p>
       </Dialog>
       <HelpDialog ctl={ctl} />
       <NotebookDialog ctl={ctl} />

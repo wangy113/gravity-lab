@@ -168,7 +168,7 @@ async function main(): Promise<void> {
     if (h.res !== '1k') await take(entry, relLow, files.hdri['1k']!.hdr!);
     const tex = new HDRLoader().setDataType(FloatType).parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer);
     const data = tex.data as Float32Array;
-    runtime.hdris.push({ key: h.key, id: h.id, label: h.label, file: rel, fileLow: relLow, groundHeight: h.groundHeight, sun: sunDirection(data, tex.width, tex.height), floorTint: floorTint(data, tex.width, tex.height) });
+    runtime.hdris.push({ key: h.key, id: h.id, label: h.label, file: rel, fileLow: relLow, groundHeight: h.groundHeight, sun: sunDirection(data, tex.width!, tex.height!), floorTint: floorTint(data, tex.width!, tex.height!) });
   }
 
   for (const t of manifest.textures) {

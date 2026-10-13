@@ -14,6 +14,13 @@ async function boot(page: Page, hash = ''): Promise<string[]> {
   return external;
 }
 
+/** The intro opens a moment after loading. Wait for it before dismissing, or it opens on top later. */
+async function dismissIntro(page: Page): Promise<void> {
+  await expect(page.locator('#introM')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#introM')).toBeHidden();
+}
+
 test('boots from local files only, with a modal intro', async ({ page }) => {
   const external = await boot(page);
   const intro = page.locator('#introM');
@@ -53,7 +60,7 @@ test('a deep link opens and runs a guided test', async ({ page }) => {
 
 test('the text version lists all six tests', async ({ page }) => {
   await boot(page);
-  await page.keyboard.press('Escape');
+  await dismissIntro(page);
   await page.click('#helpBtn');
   await page.click('#textBtn');
   await expect(page.locator('#textBody h2')).toHaveCount(6);
@@ -70,9 +77,10 @@ test('the guided lab asks for a prediction first and keeps it in the notebook', 
   await page.click('#notebookBtn');
   await expect(page.locator('#notebookM')).toContainText('Prediction: Move with the table and barely bend');
   await page.keyboard.press('Escape');
+  // The URL now ends in #stop=1, so the lab reopens on the lesson, with no intro.
   await page.reload();
   await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
-  await page.keyboard.press('Escape');
+  await expect(page.locator('#pTitle')).toHaveText('A table that makes earthquakes');
   await page.click('#notebookBtn');
   await expect(page.locator('#notebookM')).toContainText('Prediction: Move with the table and barely bend');
 });
