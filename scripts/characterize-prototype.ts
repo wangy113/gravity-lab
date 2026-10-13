@@ -333,6 +333,9 @@ async function main(): Promise<void> {
     (window as any).__lab.renderer.render = () => {};
   });
 
+  // Dismiss the welcome dialog the way a student does, so it cannot cover the controls.
+  await page.click('#introFree');
+
   const want = (id: string): boolean => !ONLY || ONLY.includes(id);
 
   const natBeat: Record<string, number> = {};
