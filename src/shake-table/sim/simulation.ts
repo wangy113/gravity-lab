@@ -316,7 +316,7 @@ export class ShakeTableSim {
       if (s.aDyn) A.applyTorqueImpulse({ x: -tx * DT, y: -ty * DT, z: -tz * DT }, true);
       if (!s.iso) {
         if (s.r > s.yieldR) {
-          if (s.damage === 0) this.emit({ kind: 'crack', t: this.simT, p: 0.5, pos: this.memberMid(s) });
+          if (s.damage === 0) this.emit({ kind: 'crack', t: this.simT, p: 0.5, story: s.label, pos: this.memberMid(s) });
           s.damage = Math.min(1, s.damage + ((s.r - s.yieldR) / (s.ultR - s.yieldR)) * DT * 1.6);
         }
         if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);

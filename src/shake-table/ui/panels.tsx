@@ -239,6 +239,8 @@ export function HelpDialog({ ctl }: Ctl) {
       <p><b>Guided lab</b> walks you through six tests. <b>Explore</b> gives you every control. Your results always go to the <b>Notebook</b>.</p>
       <p>Drag to turn the view, scroll or pinch to zoom, or use the camera buttons at the bottom right.</p>
       <h2>Keyboard shortcuts</h2>
+      <button type="button" class="btn" id="shortcutsBtn" aria-pressed={ui.shortcuts.value} onClick={() => ctl.setShortcuts(!ui.shortcuts.value)}>Single-key shortcuts {ui.shortcuts.value ? 'on' : 'off'}</button>
+      <p class="hint">Turn these off if you use speech input or a screen reader that sends letter keys.</p>
       <table class="runs keys"><tbody>{SHORTCUTS.map(([k, v]) => <tr><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}</tbody></table>
       <h2>Settings</h2>
       <div class="lbl">Graphics quality (physics is the same at every level)</div>

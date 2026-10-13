@@ -1,6 +1,6 @@
 # Shake Table Lab architecture
 
-**Status:** accepted. Phases 0 and 1 are done (sections 16.1 and 16.2). Phase 2 is done except instancing and the Chromebook measurement (16.3). Parts of phases 3 and 4 were pulled forward for a demo (16.2).
+**Status:** accepted. Phases 0 and 1 are done (sections 16.1 and 16.2). Phase 2 is done except the Chromebook measurement (16.3). Phase 3 is under way (16.4). Parts of phases 3 and 4 were pulled forward for a demo (16.2, 16.4).
 
 **Date:** 2026-10-13
 
@@ -855,6 +855,17 @@ Not done in phase 2:
 
 - **Instancing.** The scene has few enough meshes that it was not the bottleneck in software rendering. It moves to phase 4 with the full hall dressing.
 - **The 30 fps check on the baseline Chromebook.** This needs the device (question 5 in section 19).
+
+### 16.4 Phase 3 progress (2026-10-13)
+
+Sources, data export, the service worker, presenter mode and the lessons are on hold. Two items went first.
+
+- **A modeled test hall (from phase 4's "full hall dressing").** The prototype stood the lab on a `GroundedSkybox`, a 360 degree photo projected onto a dome. The floor smeared near the table, and nothing in the photo matched the 3D lab's scale. The hall is now geometry at real scale (`scene/hall.ts`), 56 m by 44 m with a 13 m eave. It has a concrete floor with painted walkways, block and corrugated walls with a window band, steel columns, roof trusses with skylights, a 20 t bridge crane, a guard rail round the test area, a glazed control booth, signs, and Poly Haven shelving, barrels, a roller door and lamps. The HDRIs now only light the scene, so the "Lab hall" menu became "Lighting". Hall textures and props are decor assets. They load after the lab is usable, so the first load did not grow (8.36 MB on Low). The orbit camera is kept inside the walls. The trusses, columns and rails are instanced.
+- **Accessibility pass.** `tests/e2e/a11y.spec.ts` runs axe-core against WCAG 2.2 A and AA on the start screen, explore mode, a guided test and every dialog. It found two problems, both fixed: the Real world and Model tags had too little contrast (now over 5:1), and the guided lab's progress dots were 16 px touch targets (now 24 px). Manual review fixed four more:
+  - Space started or stopped the table even when a button had focus. Space and Enter now belong to the focused control.
+  - Single-key shortcuts can be turned off in Help (WCAG 2.1.4), and the setting is remembered.
+  - Cracks and failures are announced to screen readers through a polite live region, whether or not dramatic effects are on.
+  - The sliders announce their units, and the 3D view is exposed as an image with a description.
 
 ## 17. Risks
 

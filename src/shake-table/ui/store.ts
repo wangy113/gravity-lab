@@ -17,6 +17,8 @@ export const ui = {
   cam: signal<CameraMode>('orbit'),
   stress: signal(true),
   drama: signal(true),
+  /** Single-key shortcuts, which can be turned off (WCAG 2.1.4). Remembered in this browser. */
+  shortcuts: signal(((): boolean => { try { return localStorage.getItem('shake-table-lab.shortcuts') !== 'off'; } catch { return true; } })()),
   quality: signal<TierChoice>('auto'),
   tier: signal<Tier>('medium'),
   slow: signal(false),
@@ -46,6 +48,8 @@ export const ui = {
   loadProgress: signal(0),
   loadMsg: signal('Starting the physics engine'),
   toast: signal(''),
+  /** Read out by screen readers (a polite live region), never shown. */
+  announce: signal(''),
   stop: signal<number | null>(null), // open guided test, or null
   poeStage: signal(0), // 0 Predict, 1 Test, 2 Observe, 3 Explain
   dialog: signal<DialogName | null>(null),

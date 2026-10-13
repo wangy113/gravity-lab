@@ -43,6 +43,7 @@ test('the quake collapses the bare frame, and replay works', async ({ page }) =>
   await page.click('#shakeBtn');
   await expect(page.locator('#peakNote')).toHaveText(/Story 1 failed 6\.\d s into the quake/, { timeout: 60_000 });
   await expect(page.locator('#roD')).toHaveText('collapsed');
+  await expect(page.locator('#announcer')).toHaveText(/Story \d failed/);
   await page.click('#replayBtn');
   await expect(page.locator('#replaybar')).toBeVisible();
   await page.click('#rpExit');
@@ -126,4 +127,22 @@ test('the modeled hall loads its dressing after the lab is usable, from local fi
   expect(Math.abs(p[2])).toBeLessThan(22);
   expect(p[0]).toBeLessThan(26);
   expect(external).toEqual([]);
+});
+
+test('Space works the focused button, and single-key shortcuts can be turned off', async ({ page }) => {
+  await boot(page);
+  await page.click('#introFree');
+  await page.locator('#stressBtn').focus();
+  await page.keyboard.press(' ');
+  await expect(page.locator('#stressBtn')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#shakeBtn')).toHaveText('Shake'); // the table did not start
+  await page.click('#helpBtn');
+  await page.click('#shortcutsBtn');
+  await expect(page.locator('#shortcutsBtn')).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('Escape');
+  await page.locator('body').press('2');
+  await expect(page.locator('#segType button[data-v="bare"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.reload();
+  await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
+  expect(await page.evaluate(() => (window as any).__lab.ui.shortcuts.value)).toBe(false);
 });

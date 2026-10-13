@@ -33,11 +33,13 @@ export class Controller {
       view.onEvent(e);
       const slow = ui.slow.value || replaying;
       if (e.kind === 'impact') this.synth.impact(e.p, e.heavy, slow);
-      else if (e.kind === 'crack') this.synth.crack(0.6);
-      else {
+      else if (e.kind === 'crack') {
+        this.synth.crack(0.6);
+        if (!replaying) ui.announce.value = `${e.story} is cracking.`;
+      } else {
         this.synth.crack(1);
         this.synth.impact(1, true, slow);
-        if (!replaying) this.onFailure(e.story, e.t);
+        if (!replaying) { ui.announce.value = `${e.story} failed. The building is collapsing.`; this.onFailure(e.story, e.t); }
       }
     });
     view.stress = ui.stress.value;
@@ -233,6 +235,12 @@ export class Controller {
     }
   }
 
+  setShortcuts(on: boolean): void {
+    ui.shortcuts.value = on;
+    try { localStorage.setItem('shake-table-lab.shortcuts', on ? 'on' : 'off'); } catch { /* private mode */ }
+    toast(on ? 'Keyboard shortcuts on' : 'Keyboard shortcuts off');
+  }
+
   setDrama(on: boolean): void {
     ui.drama.value = on;
     this.view.drama = on;
@@ -273,7 +281,10 @@ export class Controller {
   private onKey(e: KeyboardEvent): void {
     const t = e.target as HTMLElement | null;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (!ui.shortcuts.value) return;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    // Space and Enter belong to whatever button or link has focus.
+    if ((e.key === ' ' || e.key === 'Enter') && t?.closest('button, a, [role="button"], summary')) return;
     if (ui.dialog.value && e.key !== '?') return;
     const k = e.key;
     const act: Record<string, () => void> = {

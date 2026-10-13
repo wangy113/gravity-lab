@@ -61,11 +61,11 @@ function ControlRoom({ ctl }: Ctl) {
       </div>
       <div class="group">
         <label class="lbl" for="freq">Frequency <output id="freqOut">{ui.f.value.toFixed(2)} Hz</output></label>
-        <input type="range" id="freq" min="0.5" max="4" step="0.05" value={ui.f.value} disabled={ui.mode.value !== 'steady'} onInput={(e) => ctl.setF(+e.currentTarget.value)} />
+        <input type="range" id="freq" min="0.5" max="4" step="0.05" value={ui.f.value} aria-valuetext={`${ui.f.value.toFixed(2)} hertz`} disabled={ui.mode.value !== 'steady'} onInput={(e) => ctl.setF(+e.currentTarget.value)} />
       </div>
       <div class="group">
         <label class="lbl" for="strength">Strength <output id="gOut">{ui.g.value.toFixed(2)} g</output></label>
-        <input type="range" id="strength" min="0.05" max="0.6" step="0.01" value={ui.g.value} onInput={(e) => ctl.setG(+e.currentTarget.value)} />
+        <input type="range" id="strength" min="0.05" max="0.6" step="0.01" value={ui.g.value} aria-valuetext={`${ui.g.value.toFixed(2)} g`} onInput={(e) => ctl.setG(+e.currentTarget.value)} />
         <Preflight />
       </div>
       <button type="button" id="shakeBtn" class={`shake${ui.shaking.value ? ' on' : ''}`} onClick={() => ctl.toggleShake()}>{ui.shaking.value ? 'Stop' : 'Shake'}</button>
@@ -240,6 +240,7 @@ export function App({ ctl }: Ctl) {
     <>
       {ui.camTag.value && <div id="camtag"><span class="rec" />{ui.camTag.value}</div>}
       {ui.toast.value && <div id="toast" role="status">{ui.toast.value}</div>}
+      <div id="announcer" class="sr-only" aria-live="polite">{ui.announce.value}</div>
       {ui.behind.value && <div class="behind" role="status">Running slower than real time on this device</div>}
       <CollapseBanner />
       <Header ctl={ctl} />
