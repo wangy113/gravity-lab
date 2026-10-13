@@ -1,0 +1,872 @@
+{
+  "note": "Measured from prototype/index.html by scripts/characterize-prototype.ts. Phase 1 must reproduce these within tolerance. Frame rates are from headless Chromium with software WebGL and say nothing about real devices.",
+  "generatedAt": "2026-10-13T12:33:09.892Z",
+  "prototype": {
+    "file": "prototype/index.html",
+    "sha256": "01f6709a48f99670cbae0a413cc1492aeb729913bb0c7f262d819b7911eabeb0",
+    "three": "0.181.2",
+    "rapier": "@dimforge/rapier3d-compat 0.19.3"
+  },
+  "environment": {
+    "browser": "Chromium 141.0.7390.37 headless, SwiftShader WebGL",
+    "render": "draw calls skipped, frame loop and physics unchanged",
+    "repeats": 2,
+    "bootSeconds": 5.2
+  },
+  "loadProblems": [
+    "warning: using deprecated parameters for the initialization function; pass a single object instead"
+  ],
+  "naturalBeatReadoutHz": {
+    "bare": 1.1958,
+    "braced": 2.929,
+    "isolated": 0.3973
+  },
+  "wallAtRest": {
+    "handoffClaim": "Not re-checked in the handoff: the 0.18 m wall with sleeping blocks should stand at rest.",
+    "simSeconds": 20,
+    "blocks": {
+      "count": 71,
+      "maxMoveCm": 416.06,
+      "movedOver2cm": 58,
+      "droppedOver5cm": 58,
+      "asleep": 32
+    },
+    "props": {
+      "count": 13,
+      "maxMoveCm": 0.62,
+      "movedOver2cm": 0,
+      "droppedOver5cm": 0,
+      "asleep": 0
+    },
+    "standing": false,
+    "firstTiltOver5DegAt": 5.3,
+    "timeline": [
+      {
+        "t": 1,
+        "maxTiltDeg": 0.3,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 1.6,
+        "maxTiltDeg": 0.3,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 2.1,
+        "maxTiltDeg": 0.4,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 2.6,
+        "maxTiltDeg": 0.6,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 3.2,
+        "maxTiltDeg": 0.9,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 3.7,
+        "maxTiltDeg": 1.4,
+        "maxDropCm": 0.2,
+        "asleep": 0
+      },
+      {
+        "t": 4.2,
+        "maxTiltDeg": 2.2,
+        "maxDropCm": 0.3,
+        "asleep": 0
+      },
+      {
+        "t": 4.7,
+        "maxTiltDeg": 3.6,
+        "maxDropCm": 0.4,
+        "asleep": 0
+      },
+      {
+        "t": 5.3,
+        "maxTiltDeg": 5.8,
+        "maxDropCm": 0.9,
+        "asleep": 0
+      },
+      {
+        "t": 5.8,
+        "maxTiltDeg": 9.3,
+        "maxDropCm": 1.7,
+        "asleep": 0
+      },
+      {
+        "t": 6.3,
+        "maxTiltDeg": 16.6,
+        "maxDropCm": 4.7,
+        "asleep": 0
+      },
+      {
+        "t": 6.8,
+        "maxTiltDeg": 48.7,
+        "maxDropCm": 48.3,
+        "asleep": 0
+      },
+      {
+        "t": 7.4,
+        "maxTiltDeg": 178.4,
+        "maxDropCm": 205.6,
+        "asleep": 0
+      },
+      {
+        "t": 7.9,
+        "maxTiltDeg": null,
+        "maxDropCm": 280.4,
+        "asleep": 0
+      },
+      {
+        "t": 8.5,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 0
+      },
+      {
+        "t": 9,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 0
+      },
+      {
+        "t": 9.6,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 23
+      },
+      {
+        "t": 10.1,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 29
+      },
+      {
+        "t": 10.7,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 11.3,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 11.8,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 12.3,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 12.9,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 13.4,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 13.9,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 14.4,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 15,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 15.5,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 16,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 16.6,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 17.1,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 17.6,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 18.2,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 18.7,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 19.2,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 19.8,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 20.4,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      },
+      {
+        "t": 20.9,
+        "maxTiltDeg": null,
+        "maxDropCm": 281.3,
+        "asleep": 32
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "sweep-bare",
+      "source": "Guided test 2 (STOPS[1])",
+      "config": {
+        "type": "bare",
+        "mode": "sweep",
+        "g": 0.2
+      },
+      "handoffClaim": "The sweep collapses the bare frame at about 1.14 Hz.",
+      "matchesHandoff": true,
+      "summary": {
+        "collapsedRuns": 2,
+        "medianPeakRoofCm": 21.7,
+        "failureHz": [
+          1.14,
+          1.14
+        ]
+      },
+      "runs": [
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed at 1.14 Hz",
+          "firstFailure": {
+            "story": "Story 1",
+            "atHz": 1.14
+          },
+          "peakRoofCm": 21.7,
+          "peakRoofHz": 1.138,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 6,
+              "maxDamage": 0.667,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 3.98,
+              "maxDamage": 0.27,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 2.9,
+              "maxDamage": 0.038,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 33.51,
+          "realSeconds": 36.6,
+          "fps": 60
+        },
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed at 1.14 Hz",
+          "firstFailure": {
+            "story": "Story 1",
+            "atHz": 1.14
+          },
+          "peakRoofCm": 21.7,
+          "peakRoofHz": 1.138,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 6,
+              "maxDamage": 0.667,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 4.04,
+              "maxDamage": 0.255,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 2.83,
+              "maxDamage": 0.033,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 33.51,
+          "realSeconds": 36.7,
+          "fps": 59.9
+        }
+      ]
+    },
+    {
+      "id": "sweep-braced",
+      "source": "Guided test 4 (STOPS[3])",
+      "config": {
+        "type": "braced",
+        "mode": "sweep",
+        "g": 0.2
+      },
+      "handoffClaim": "The braced frame survives the sweep with cracking.",
+      "matchesHandoff": true,
+      "summary": {
+        "collapsedRuns": 0,
+        "medianPeakRoofCm": 10.2
+      },
+      "runs": [
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 10.2,
+          "peakRoofHz": 3.119,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 2.66,
+              "maxDamage": 0.47,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 1.95,
+              "maxDamage": 0.092,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 1.05,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 33.51,
+          "realSeconds": 36.5,
+          "fps": 60
+        },
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 10.2,
+          "peakRoofHz": 3.119,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 2.65,
+              "maxDamage": 0.469,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 1.95,
+              "maxDamage": 0.091,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 1.05,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 33.51,
+          "realSeconds": 36.6,
+          "fps": 59.9
+        }
+      ]
+    },
+    {
+      "id": "steady-3hz-bare",
+      "source": "Guided test 3 (STOPS[2])",
+      "config": {
+        "type": "bare",
+        "mode": "steady",
+        "f": 3,
+        "g": 0.2
+      },
+      "stoppedAfterSeconds": 20,
+      "handoffClaim": "Steady shaking at 3 Hz does nothing to the bare frame.",
+      "matchesHandoff": true,
+      "summary": {
+        "collapsedRuns": 0,
+        "medianPeakRoofCm": 1.6
+      },
+      "runs": [
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 1.6,
+          "peakRoofHz": 3,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.42,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.53,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.77,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 21.59,
+          "realSeconds": 24.7,
+          "fps": 60
+        },
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 1.6,
+          "peakRoofHz": 3,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.42,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.54,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.77,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 21.62,
+          "realSeconds": 24.8,
+          "fps": 59.9
+        }
+      ]
+    },
+    {
+      "id": "steady-3hz-bare-tour",
+      "source": "Guided test 1 (STOPS[0])",
+      "config": {
+        "type": "bare",
+        "mode": "steady",
+        "f": 3,
+        "g": 0.15
+      },
+      "stoppedAfterSeconds": 20,
+      "handoffClaim": null,
+      "matchesHandoff": null,
+      "summary": {
+        "collapsedRuns": 0,
+        "medianPeakRoofCm": 1.2
+      },
+      "runs": [
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 1.2,
+          "peakRoofHz": 3,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.32,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.4,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.58,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 21.62,
+          "realSeconds": 24.7,
+          "fps": 60
+        },
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 1.2,
+          "peakRoofHz": 3,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.32,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.4,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.58,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 21.59,
+          "realSeconds": 24.7,
+          "fps": 60
+        }
+      ]
+    },
+    {
+      "id": "steady-1.2hz-bare",
+      "source": "Guided test 3 follow-up: \"set Frequency to 1.2 Hz and press Shake again\"",
+      "config": {
+        "type": "bare",
+        "mode": "steady",
+        "f": 1.2,
+        "g": 0.2
+      },
+      "stoppedAfterSeconds": 20,
+      "handoffClaim": null,
+      "matchesHandoff": null,
+      "summary": {
+        "collapsedRuns": 2,
+        "medianPeakRoofCm": 21.6,
+        "failureHz": [
+          1.2,
+          1.2
+        ]
+      },
+      "runs": [
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed at 1.20 Hz",
+          "firstFailure": {
+            "story": "Story 1",
+            "atHz": 1.2
+          },
+          "peakRoofCm": 21.6,
+          "peakRoofHz": 1.2,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 5.66,
+              "maxDamage": 0.48,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 4.83,
+              "maxDamage": 0.582,
+              "failed": true
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 4.32,
+              "maxDamage": 0.12,
+              "failed": true
+            }
+          ],
+          "shakeSeconds": 21.62,
+          "realSeconds": 24.8,
+          "fps": 60
+        },
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed at 1.20 Hz",
+          "firstFailure": {
+            "story": "Story 1",
+            "atHz": 1.2
+          },
+          "peakRoofCm": 21.6,
+          "peakRoofHz": 1.2,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 5.66,
+              "maxDamage": 0.48,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 4.39,
+              "maxDamage": 0.562,
+              "failed": true
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 5.8,
+              "maxDamage": 0.11,
+              "failed": true
+            }
+          ],
+          "shakeSeconds": 21.63,
+          "realSeconds": 24.8,
+          "fps": 60
+        }
+      ]
+    },
+    {
+      "id": "quake-bare",
+      "source": "Guided test 6 (STOPS[5])",
+      "config": {
+        "type": "bare",
+        "mode": "quake",
+        "g": 0.3
+      },
+      "handoffClaim": "The quake collapses the bare frame 6.5 s in.",
+      "matchesHandoff": true,
+      "summary": {
+        "collapsedRuns": 2,
+        "medianPeakRoofCm": 21.6,
+        "failureSeconds": [
+          6.5,
+          6.5
+        ]
+      },
+      "runs": [
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed 6.5 s into the quake",
+          "firstFailure": {
+            "story": "Story 1",
+            "atSeconds": 6.5
+          },
+          "peakRoofCm": 21.8,
+          "peakRoofHz": null,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 5.93,
+              "maxDamage": 0.655,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 5.52,
+              "maxDamage": 0.518,
+              "failed": true
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 5.46,
+              "maxDamage": 0.106,
+              "failed": true
+            }
+          ],
+          "shakeSeconds": 25.5,
+          "realSeconds": 28.6,
+          "fps": 60
+        },
+        {
+          "collapsed": true,
+          "failNote": "Story 1 failed 6.5 s into the quake",
+          "firstFailure": {
+            "story": "Story 1",
+            "atSeconds": 6.5
+          },
+          "peakRoofCm": 21.3,
+          "peakRoofHz": null,
+          "stories": [
+            {
+              "label": "Story 1",
+              "maxDriftPct": 5.79,
+              "maxDamage": 0.655,
+              "failed": true
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 5.03,
+              "maxDamage": 0.513,
+              "failed": true
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 4.52,
+              "maxDamage": 0.111,
+              "failed": true
+            }
+          ],
+          "shakeSeconds": 25.5,
+          "realSeconds": 28.6,
+          "fps": 60
+        }
+      ]
+    },
+    {
+      "id": "quake-isolated",
+      "source": "Guided test 5 (STOPS[4])",
+      "config": {
+        "type": "isolated",
+        "mode": "quake",
+        "g": 0.35
+      },
+      "handoffClaim": "The isolated building rides out the quake.",
+      "matchesHandoff": true,
+      "summary": {
+        "collapsedRuns": 0,
+        "medianPeakRoofCm": 6
+      },
+      "runs": [
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 6,
+          "peakRoofHz": null,
+          "stories": [
+            {
+              "label": "Isolators",
+              "maxDriftPct": 3.22,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.07,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.04,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.02,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 25.5,
+          "realSeconds": 28.6,
+          "fps": 59.9
+        },
+        {
+          "collapsed": false,
+          "failNote": "",
+          "firstFailure": null,
+          "peakRoofCm": 6,
+          "peakRoofHz": null,
+          "stories": [
+            {
+              "label": "Isolators",
+              "maxDriftPct": 3.22,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 1",
+              "maxDriftPct": 0.07,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 2",
+              "maxDriftPct": 0.04,
+              "maxDamage": 0,
+              "failed": false
+            },
+            {
+              "label": "Story 3",
+              "maxDriftPct": 0.02,
+              "maxDamage": 0,
+              "failed": false
+            }
+          ],
+          "shakeSeconds": 25.5,
+          "realSeconds": 28.7,
+          "fps": 60
+        }
+      ]
+    }
+  ],
+  "replay": {
+    "handoffClaim": "Replay works.",
+    "recordedFrames": 646,
+    "entered": true,
+    "playheadAdvanced": true,
+    "barVisible": true,
+    "exited": true,
+    "matchesHandoff": true
+  }
+}

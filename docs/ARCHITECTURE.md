@@ -1,12 +1,12 @@
 # Shake Table Lab architecture
 
-**Status:** accepted. Phase 0 is in progress (section 16).
+**Status:** accepted. Phase 0 is done (section 16.1). Phase 1 is next.
 
 **Date:** 2026-10-13
 
 **Scope:** how to turn the single-file proof of concept into a full-scale lab, still built on three.js, Poly Haven and Rapier.
 
-The proof of concept is one `index.html` (1,219 lines) plus `HANDOFF.md` (last updated 2026-10-12). Neither is in this repository yet. Phase 0 adds them under `prototype/` (section 16).
+The proof of concept is one `index.html` (1,219 lines) plus `HANDOFF.md` (last updated 2026-10-12), kept unchanged in `prototype/`.
 
 ## Contents
 
@@ -120,7 +120,7 @@ The handoff's checks prove these ideas, and they carry over unchanged:
 | Renders every frame, even when nothing moves | Drains laptop and Chromebook batteries | Render on demand when idle |
 | Fonts come from Google Fonts | A third-party request on every load | Self-hosted fonts. Barlow and JetBrains Mono both use the SIL Open Font License |
 
-One handoff check is still open. The block wall was changed to 0.18 m blocks that sleep at rest, after a 0.14 m wall fell over by itself, and the re-test was cut off. Phase 0 confirms whether the wall stands at rest (section 16).
+The handoff left one check open: the block wall was changed to 0.18 m blocks that sleep at rest, after a 0.14 m wall fell over by itself, and the re-test was cut off. Phase 0 answered it. **The wall still falls over by itself.** With no shaking, it leans outward from about 1.5 s, passes 5° at 5.3 s and topples at about 7 s. 58 of its 71 blocks fall, and no block sleeps before that, so the sleep change never takes effect. The port has to fix this (section 16.1).
 
 ### 3.3 Results to preserve
 
@@ -775,6 +775,32 @@ Each phase ends with something that works. Sizes are relative.
 | 2. Engine and assets | L | Deterministic build, then Rapier 0.21.x, then three 0.186.x, one pull request each. Asset optimization and budgets. Quality tiers, instancing and render on demand. Specimen specification and compiler (Model 1). Modal analysis from the specification. Stability guard. Table preflight | Scenarios pass on the new versions. First load within budget. 30 fps on the baseline Chromebook in the quake scenario |
 | 3. Lab v1 | L | Lesson runner, the tour and four core lessons. Instruments panel, analysis and CSV export. Replay of the whole test with chart cursors. Notebook and report export. Accessibility pass. Content lint and sources, with the City Hall claim sourced or removed. Canvas level 1 with the instructor key. Service worker. Presenter mode | A pilot section uses it. No accessibility blockers. Every Real world claim has a source |
 | 4. Full scale | XL | Model 2: element springs, bilinear law, P-Delta and torsion. Specimen builder and design challenge. Recorded earthquakes and two-axis shaking. Dampers, tuned mass damper and friction pendulum. Full hall dressing. WebGPU trial. Optional SCORM and lab codes | Each feature has scenarios. Lessons are re-checked on Model 2 |
+
+### 16.1 Phase 0 results (2026-10-13)
+
+`scripts/characterize-prototype.ts` ran the unchanged prototype in headless Chromium, twice per scenario, using the guided-test settings. The results are in `tests/scenarios/baseline.json`, and phase 1 must reproduce them.
+
+| Check | Settings | Result | Handoff |
+|---|---|---|---|
+| Natural beat readout | | 1.1958, 2.929 and 0.3973 Hz | matches the modal table in 3.3 |
+| Sweep, bare frame | 0.6 to 4 Hz over 32 s, 0.2 g | Story 1 fails at 1.14 Hz in both runs. Peak roof swing 21.7 cm | matches |
+| Sweep, braced | same | Survives. Story 1 cracks (damage 0.47), peak drift 2.7% | matches |
+| Steady, bare frame | 3 Hz, 0.2 g, 20 s | No damage. Peak roof swing 1.6 cm | matches |
+| Steady, bare frame | 3 Hz, 0.15 g, 20 s (tour stop 1) | No damage. Peak roof swing 1.2 cm | not in handoff |
+| Steady, bare frame | 1.2 Hz, 0.2 g (tour stop 3 follow-up) | All three stories fail, the first at 1.20 Hz | not in handoff |
+| Quake, bare frame | synthetic, 0.3 g | Story 1 fails 6.5 s in, both runs | matches |
+| Quake, isolated | synthetic, 0.35 g | Survives. Floors drift under 0.1% | matches |
+| Replay | after a quake | Enters, plays, exits | matches |
+| Wall at rest | no shaking, 20 s | **Falls over by itself** (tilt passes 5° at 5.3 s) | the open check: fails |
+
+Notes for phase 1:
+
+- **Runs are repeatable.** Every structural result was identical across runs. The bare quake's peak roof swing differed slightly (21.8 and 21.3 cm), because the prototype samples it once per rendered frame.
+- **How the harness runs the prototype.** The prototype's frame loop draws, steps physics, syncs meshes, detects impacts and records replay. The harness skips only the GPU draw call, because software WebGL needed about a second per frame. Everything else in the frame loop runs unchanged. The served copy also gets read-only accessors on `window.__lab`. The file on disk never changes.
+- **The wall fix belongs to the port**, not the frozen prototype. Likely causes to test first: solver drift in an 11-course stack that never sleeps, and the 1 mm gaps between courses. Rapier 0.20 rewrote sleeping (5.2), which may also change the outcome.
+- **The furniture stays put at rest.** The largest movement of the 13 props was 0.6 cm.
+- **Rapier logs one warning:** "using deprecated parameters for the initialization function", from `RAPIER.init({})`.
+- **Rerunning.** The manual "Characterize prototype" workflow reruns the harness in GitHub Actions.
 
 ## 17. Risks
 
