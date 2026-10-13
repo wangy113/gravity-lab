@@ -132,7 +132,10 @@ test('the modeled hall loads its dressing after the lab is usable, from local fi
 test('Space works the focused button, and single-key shortcuts can be turned off', async ({ page }) => {
   await boot(page);
   await page.click('#introFree');
+  // Closing the start screen hands focus back, so wait for it before focusing the button.
+  await expect(page.locator('#introM')).toBeHidden();
   await page.locator('#stressBtn').focus();
+  await expect(page.locator('#stressBtn')).toBeFocused();
   await page.keyboard.press(' ');
   await expect(page.locator('#stressBtn')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#shakeBtn')).toHaveText('Shake'); // the table did not start
