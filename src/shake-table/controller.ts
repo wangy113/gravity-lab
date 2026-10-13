@@ -127,12 +127,12 @@ export class Controller {
 
   async setHall(key: string): Promise<void> {
     ui.hall.value = key;
-    toast('Loading the hall...', 8000);
+    toast('Changing the lighting...', 8000);
     try {
       await this.view.loadHall(key);
       toast('Hall ready', 1200);
     } catch {
-      toast('Could not load the hall. Using a plain room.');
+      toast('Could not load that lighting. Using plain light.');
     }
   }
 

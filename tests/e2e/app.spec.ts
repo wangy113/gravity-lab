@@ -107,3 +107,23 @@ test('the control room warns when the table cannot reach the strength asked for'
   await page.locator('#segMode button[data-v="quake"]').click();
   await expect(page.locator('#preflightNote')).toHaveCount(0);
 });
+
+test('the modeled hall loads its dressing after the lab is usable, from local files only', async ({ page }) => {
+  const external = await boot(page);
+  await dismissIntro(page);
+  await expect.poll(() => page.evaluate(() => {
+    const v = (window as any).__lab.view;
+    return Boolean(v.scene.getObjectByName('hall')) && Boolean(v.models.rollershutter_door) && Boolean(v.models.steel_frame_shelves_01);
+  }), { timeout: 60_000 }).toBe(true);
+  // The orbit camera stays inside the hall walls however far it zooms out.
+  const p = await page.evaluate(() => {
+    const L = (window as any).__lab;
+    for (let i = 0; i < 20; i++) L.view.zoomBy(1.5);
+    L.view.updateCamera(L.lab);
+    const c = L.view.camera.position;
+    return [c.x, c.y, c.z];
+  });
+  expect(Math.abs(p[2])).toBeLessThan(22);
+  expect(p[0]).toBeLessThan(26);
+  expect(external).toEqual([]);
+});

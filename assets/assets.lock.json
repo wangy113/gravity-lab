@@ -228,6 +228,67 @@
       ]
     },
     {
+      "id": "concrete_block_wall",
+      "type": "texture",
+      "name": "Concrete Block Wall",
+      "authors": [
+        "Charlotte Baglioni"
+      ],
+      "license": "CC0",
+      "filesHash": "644bfae9b200347661789b84af437c8ce6f2e957",
+      "files": [
+        {
+          "path": "textures/concrete_block_wall/concrete_block_wall_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_block_wall/concrete_block_wall_diff_1k.jpg",
+          "md5": "887af6e633fd0fb241eb5924623e510c",
+          "size": 848947
+        },
+        {
+          "path": "textures/concrete_block_wall/concrete_block_wall_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_block_wall/concrete_block_wall_nor_gl_1k.jpg",
+          "md5": "82c95256c62d1ec5a87bfec5a788fa9a",
+          "size": 1099782
+        },
+        {
+          "path": "textures/concrete_block_wall/concrete_block_wall_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/concrete_block_wall/concrete_block_wall_arm_1k.jpg",
+          "md5": "1befc09e7a0ffbce95243f247b49bd16",
+          "size": 579448
+        }
+      ]
+    },
+    {
+      "id": "corrugated_iron",
+      "type": "texture",
+      "name": "Corrugated Iron",
+      "authors": [
+        "Jenelle van Heerden",
+        "Dimitrios Savva"
+      ],
+      "license": "CC0",
+      "filesHash": "32412884f4522418b4598d9631610b2331e8ca58",
+      "files": [
+        {
+          "path": "textures/corrugated_iron/corrugated_iron_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron/corrugated_iron_diff_1k.jpg",
+          "md5": "fabb629c5ad6f427e6862bb4043564bd",
+          "size": 719557
+        },
+        {
+          "path": "textures/corrugated_iron/corrugated_iron_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron/corrugated_iron_nor_gl_1k.jpg",
+          "md5": "02249d61a2b1839552938f35a20d075a",
+          "size": 755185
+        },
+        {
+          "path": "textures/corrugated_iron/corrugated_iron_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/corrugated_iron/corrugated_iron_arm_1k.jpg",
+          "md5": "1aa3a922ef522a8b98e6d38a810d8a3e",
+          "size": 513485
+        }
+      ]
+    },
+    {
       "id": "metal_office_desk",
       "type": "model",
       "name": "Metal Office Desk",
@@ -680,6 +741,325 @@
           "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/metal_toolbox/metal_toolbox.bin",
           "md5": "0a7b37a276056e8c1c714dd4af0351f9",
           "size": 468892
+        }
+      ]
+    },
+    {
+      "id": "steel_frame_shelves_01",
+      "type": "model",
+      "name": "Steel Frame Shelves 01",
+      "authors": [
+        "James Ray Cock"
+      ],
+      "license": "CC0",
+      "filesHash": "07b34991c01f75c3bfe85923ba649bc40de1dd17",
+      "files": [
+        {
+          "path": "models/steel_frame_shelves_01/steel_frame_shelves_01_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/steel_frame_shelves_01/steel_frame_shelves_01_1k.gltf",
+          "md5": "36c93aa3e2757523e3f6336d628033ff",
+          "size": 2766
+        },
+        {
+          "path": "models/steel_frame_shelves_01/textures/steel_frame_shelves_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/steel_frame_shelves_01/steel_frame_shelves_01_diff_1k.jpg",
+          "md5": "65520a03f0caf855bcb74a7842a0f937",
+          "size": 477882
+        },
+        {
+          "path": "models/steel_frame_shelves_01/textures/steel_frame_shelves_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/steel_frame_shelves_01/steel_frame_shelves_01_nor_gl_1k.jpg",
+          "md5": "a87fd3930fc88524d1f43c23e2725fc0",
+          "size": 318836
+        },
+        {
+          "path": "models/steel_frame_shelves_01/textures/steel_frame_shelves_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/steel_frame_shelves_01/steel_frame_shelves_01_arm_1k.jpg",
+          "md5": "2adddc4cd4dc2be76c171791bb5338cd",
+          "size": 655560
+        },
+        {
+          "path": "models/steel_frame_shelves_01/steel_frame_shelves_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/steel_frame_shelves_01/steel_frame_shelves_01.bin",
+          "md5": "5728ceb7ff0d9b0b5ba5e7ef970aced9",
+          "size": 142312
+        }
+      ]
+    },
+    {
+      "id": "barrel_03",
+      "type": "model",
+      "name": "Barrel 03",
+      "authors": [
+        "Serhii Khromov"
+      ],
+      "license": "CC0",
+      "filesHash": "c57f576af2df8ce2cfefe1190365213b5cb4f1ea",
+      "files": [
+        {
+          "path": "models/barrel_03/barrel_03_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/barrel_03/barrel_03_1k.gltf",
+          "md5": "204eec2159a38a1dc4b826ef255f9468",
+          "size": 2638
+        },
+        {
+          "path": "models/barrel_03/textures/barrel_03_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/barrel_03/barrel_03_diff_1k.jpg",
+          "md5": "6e77dc1af60c48787fd80dbbcf125040",
+          "size": 149997
+        },
+        {
+          "path": "models/barrel_03/barrel_03.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/barrel_03/barrel_03.bin",
+          "md5": "6993587e3ef8e0603334e615ab292288",
+          "size": 44872
+        },
+        {
+          "path": "models/barrel_03/textures/barrel_03_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/barrel_03/barrel_03_nor_gl_1k.jpg",
+          "md5": "fd181365eb7397d55773987d145f0420",
+          "size": 126707
+        },
+        {
+          "path": "models/barrel_03/textures/barrel_03_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/barrel_03/barrel_03_arm_1k.jpg",
+          "md5": "3520338e30b4d257745db34848098688",
+          "size": 249922
+        }
+      ]
+    },
+    {
+      "id": "rollershutter_door",
+      "type": "model",
+      "name": "Rollershutter Door",
+      "authors": [
+        "MP"
+      ],
+      "license": "CC0",
+      "filesHash": "4f4b3b132d12aa4253364b988714f8185ed45e19",
+      "files": [
+        {
+          "path": "models/rollershutter_door/rollershutter_door_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/rollershutter_door/rollershutter_door_1k.gltf",
+          "md5": "e8ad4c4ea26db990d32301cd1f7481cf",
+          "size": 5378
+        },
+        {
+          "path": "models/rollershutter_door/rollershutter_door.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/rollershutter_door/rollershutter_door.bin",
+          "md5": "9df2ea3372b84dca7959d81cd5818d29",
+          "size": 46192
+        },
+        {
+          "path": "models/rollershutter_door/textures/rollershutter_door_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rollershutter_door/rollershutter_door_arm_1k.jpg",
+          "md5": "5fc759f9776f232e6039ec5f847073df",
+          "size": 626069
+        },
+        {
+          "path": "models/rollershutter_door/textures/rollershutter_door_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rollershutter_door/rollershutter_door_diff_1k.jpg",
+          "md5": "2903cbe74c5d9d434951ec8625725458",
+          "size": 600354
+        },
+        {
+          "path": "models/rollershutter_door/textures/rollershutter_door_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rollershutter_door/rollershutter_door_nor_gl_1k.jpg",
+          "md5": "bd6f336490c10bdb6ca1a527981054a3",
+          "size": 381716
+        },
+        {
+          "path": "models/rollershutter_door/textures/rollershutter_door_graffiti_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/rollershutter_door/rollershutter_door_graffiti_diff_1k.jpg",
+          "md5": "1985c43406b33a7a874ea78041dd44db",
+          "size": 683274
+        }
+      ]
+    },
+    {
+      "id": "hanging_industrial_lamp",
+      "type": "model",
+      "name": "Hanging Industrial Lamp",
+      "authors": [
+        "Kuutti Siitonen"
+      ],
+      "license": "CC0",
+      "filesHash": "93bdeee802d5c557ec986ed728bf843b41ead1fb",
+      "files": [
+        {
+          "path": "models/hanging_industrial_lamp/hanging_industrial_lamp_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/hanging_industrial_lamp/hanging_industrial_lamp_1k.gltf",
+          "md5": "59baa7ef17a7696ac26bc5bd70fbb3df",
+          "size": 5436
+        },
+        {
+          "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_emissive_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/hanging_industrial_lamp/hanging_industrial_lamp_emissive_1k.jpg",
+          "md5": "a9e170515931ba022ec6436e188d360b",
+          "size": 40173
+        },
+        {
+          "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/hanging_industrial_lamp/hanging_industrial_lamp_nor_gl_1k.jpg",
+          "md5": "6820f01127e747636024838f0bde0494",
+          "size": 753861
+        },
+        {
+          "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/hanging_industrial_lamp/hanging_industrial_lamp_diff_1k.jpg",
+          "md5": "9931801f2ff2533c891105c7a41af39d",
+          "size": 708934
+        },
+        {
+          "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/hanging_industrial_lamp/hanging_industrial_lamp_arm_1k.jpg",
+          "md5": "077f309d4ed9d38b19be1aa75462771e",
+          "size": 835394
+        },
+        {
+          "path": "models/hanging_industrial_lamp/textures/hanging_industrial_lamp_glass_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/hanging_industrial_lamp/hanging_industrial_lamp_glass_nor_gl_1k.jpg",
+          "md5": "2e64e3e249137658baaa7cde64ad4def",
+          "size": 555604
+        },
+        {
+          "path": "models/hanging_industrial_lamp/hanging_industrial_lamp.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/hanging_industrial_lamp/hanging_industrial_lamp.bin",
+          "md5": "7148574f0db05abe68f7e51565abe2ce",
+          "size": 344252
+        }
+      ]
+    },
+    {
+      "id": "portable_generator",
+      "type": "model",
+      "name": "Portable Generator",
+      "authors": [
+        "James Ray Cock"
+      ],
+      "license": "CC0",
+      "filesHash": "1eb1caabd255ee5d737842cb7d92dc325c77d0f4",
+      "files": [
+        {
+          "path": "models/portable_generator/portable_generator_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/portable_generator/portable_generator_1k.gltf",
+          "md5": "13c2380487daae6726443b9f38dd7e53",
+          "size": 10130
+        },
+        {
+          "path": "models/portable_generator/textures/portable_generator_spec_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/portable_generator/portable_generator_spec_1k.jpg",
+          "md5": "b3044dbc984897ed902bd47a450f742f",
+          "size": 23119
+        },
+        {
+          "path": "models/portable_generator/textures/portable_generator_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/portable_generator/portable_generator_nor_gl_1k.jpg",
+          "md5": "89a51a982488c21eddec2c6e02249591",
+          "size": 818829
+        },
+        {
+          "path": "models/portable_generator/textures/portable_generator_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/portable_generator/portable_generator_diff_1k.jpg",
+          "md5": "3d572e1716148ca5d641d8a199fe9192",
+          "size": 755079
+        },
+        {
+          "path": "models/portable_generator/textures/portable_generator_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/portable_generator/portable_generator_arm_1k.jpg",
+          "md5": "7dbb8b9f0aa4e9d3ce6ad37e0326299f",
+          "size": 887711
+        },
+        {
+          "path": "models/portable_generator/portable_generator.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/portable_generator/portable_generator.bin",
+          "md5": "81b2f4c4c6d0b0d7388ae9aa1123563a",
+          "size": 939572
+        }
+      ]
+    },
+    {
+      "id": "power_box_01",
+      "type": "model",
+      "name": "Power Box 01",
+      "authors": [
+        "Rico Cilliers",
+        "Yann Kervran"
+      ],
+      "license": "CC0",
+      "filesHash": "4df156d1369da9a74510ad2ff012212cea3d4cfa",
+      "files": [
+        {
+          "path": "models/power_box_01/power_box_01_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/power_box_01/power_box_01_1k.gltf",
+          "md5": "9fbd7f7049a13eb25213f5038c1ef42c",
+          "size": 4417
+        },
+        {
+          "path": "models/power_box_01/textures/power_box_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/power_box_01/power_box_01_arm_1k.jpg",
+          "md5": "2173121335747b6b20b747363d530006",
+          "size": 801803
+        },
+        {
+          "path": "models/power_box_01/textures/power_box_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/power_box_01/power_box_01_nor_gl_1k.jpg",
+          "md5": "92c88449b0ce7dad3cd1d7e055870af5",
+          "size": 646545
+        },
+        {
+          "path": "models/power_box_01/power_box_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/power_box_01/power_box_01.bin",
+          "md5": "e76df413e15ce8a76eb50971266d2450",
+          "size": 782096
+        },
+        {
+          "path": "models/power_box_01/textures/power_box_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/power_box_01/power_box_01_diff_1k.jpg",
+          "md5": "c5d43a1a9cf48a616852a05401ad8f20",
+          "size": 490782
+        }
+      ]
+    },
+    {
+      "id": "ladder_sectioned_01",
+      "type": "model",
+      "name": "Ladder Sectioned 01",
+      "authors": [
+        "MP"
+      ],
+      "license": "CC0",
+      "filesHash": "13918cbf2df2d0f0321d29546ed2da162b44887a",
+      "files": [
+        {
+          "path": "models/ladder_sectioned_01/ladder_sectioned_01_1k.gltf",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/ladder_sectioned_01/ladder_sectioned_01_1k.gltf",
+          "md5": "32b611a28cddb9bc4e4d1081a93e3f64",
+          "size": 7585
+        },
+        {
+          "path": "models/ladder_sectioned_01/textures/ladder_sectioned_01_nor_gl_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ladder_sectioned_01/ladder_sectioned_01_nor_gl_1k.jpg",
+          "md5": "0213fb2633848d1e47ea924c50d44679",
+          "size": 342722
+        },
+        {
+          "path": "models/ladder_sectioned_01/textures/ladder_sectioned_01_diff_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ladder_sectioned_01/ladder_sectioned_01_diff_1k.jpg",
+          "md5": "998b6a0f9d956f962df3ff404155eac2",
+          "size": 509874
+        },
+        {
+          "path": "models/ladder_sectioned_01/ladder_sectioned_01.bin",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/ladder_sectioned_01/ladder_sectioned_01.bin",
+          "md5": "9e60e756a893539f19495ea497ad825c",
+          "size": 914488
+        },
+        {
+          "path": "models/ladder_sectioned_01/textures/ladder_sectioned_01_arm_1k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/ladder_sectioned_01/ladder_sectioned_01_arm_1k.jpg",
+          "md5": "bacfe7d5a6b96b0153a52cf78dfedf2a",
+          "size": 797514
         }
       ]
     }

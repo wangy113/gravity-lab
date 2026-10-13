@@ -5,6 +5,8 @@ export interface RuntimeManifest {
   textures: Record<string, { diffuse: string; normal: string; arm: string }>;
   models: Record<string, string>;
   credits: { id: string; name: string; type: string; authors: string[] }[];
+  /** Hall dressing, loaded after the lab is usable. */
+  decor: { textures: string[]; models: string[] };
   /** Bytes per file, for load budgets. */
   sizes: Record<string, number>;
 }

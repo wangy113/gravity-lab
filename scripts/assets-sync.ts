@@ -34,8 +34,8 @@ const CHECK = process.argv.includes('--check');
 
 interface Manifest {
   hdris: { id: string; key: string; label: string; res: string; groundHeight: number }[];
-  textures: { id: string; res: string }[];
-  models: { id: string; res: string; physical?: boolean }[];
+  textures: { id: string; res: string; decor?: boolean }[];
+  models: { id: string; res: string; physical?: boolean; decor?: boolean }[];
 }
 interface PhFile { url: string; md5: string; size: number; include?: Record<string, PhFile> }
 interface LockFile { path: string; url: string; md5: string; size: number }
@@ -141,6 +141,11 @@ async function main(): Promise<void> {
     textures: {} as Record<string, { diffuse: string; normal: string; arm: string }>,
     models: {} as Record<string, string>,
     credits: [] as { id: string; name: string; type: string; authors: string[] }[],
+    // Hall dressing: loaded after the lab is usable, and outside the first-load budget.
+    decor: {
+      textures: manifest.textures.filter((t) => t.decor).map((t) => t.id),
+      models: manifest.models.filter((m) => m.decor).map((m) => m.id),
+    },
   };
   const propSizes: Record<string, { x: number; y: number; z: number }> = {};
 

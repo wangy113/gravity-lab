@@ -45,6 +45,7 @@ async function boot(): Promise<void> {
   ctl.setG(ui.g.value);
   ctl.setType('bare');
   ui.loading.value = false;
+  void view.loadDecor(); // hall textures and dressing, after the lab is usable
   if (choice === 'auto') ctl.startFrameWatch();
 
   addEventListener('resize', () => view.resize());

@@ -3,7 +3,7 @@
     {
       "key": "aircraft",
       "id": "aircraft_workshop_01",
-      "label": "Test workshop",
+      "label": "Daylight",
       "file": "hdri/aircraft_workshop_01_2k.hdr",
       "fileLow": "hdri/aircraft_workshop_01_1k.hdr",
       "groundHeight": 3.2,
@@ -21,7 +21,7 @@
     {
       "key": "hangar",
       "id": "hangar_interior",
-      "label": "Hangar",
+      "label": "Work lights",
       "file": "hdri/hangar_interior_2k.hdr",
       "fileLow": "hdri/hangar_interior_1k.hdr",
       "groundHeight": 3.2,
@@ -39,7 +39,7 @@
     {
       "key": "foundry",
       "id": "industrial_workshop_foundry",
-      "label": "Foundry hall",
+      "label": "Warm evening",
       "file": "hdri/industrial_workshop_foundry_2k.hdr",
       "fileLow": "hdri/industrial_workshop_foundry_1k.hdr",
       "groundHeight": 3.2,
@@ -80,6 +80,16 @@
       "diffuse": "textures/concrete_floor_02/diffuse.webp",
       "normal": "textures/concrete_floor_02/normal.webp",
       "arm": "textures/concrete_floor_02/arm.webp"
+    },
+    "concrete_block_wall": {
+      "diffuse": "textures/concrete_block_wall/diffuse.webp",
+      "normal": "textures/concrete_block_wall/normal.webp",
+      "arm": "textures/concrete_block_wall/arm.webp"
+    },
+    "corrugated_iron": {
+      "diffuse": "textures/corrugated_iron/diffuse.webp",
+      "normal": "textures/corrugated_iron/normal.webp",
+      "arm": "textures/corrugated_iron/arm.webp"
     }
   },
   "models": {
@@ -92,7 +102,14 @@
     "portable_searchlight": "models/portable_searchlight.glb",
     "korean_fire_extinguisher_01": "models/korean_fire_extinguisher_01.glb",
     "industrial_storage_cart": "models/industrial_storage_cart.glb",
-    "metal_toolbox": "models/metal_toolbox.glb"
+    "metal_toolbox": "models/metal_toolbox.glb",
+    "steel_frame_shelves_01": "models/steel_frame_shelves_01.glb",
+    "barrel_03": "models/barrel_03.glb",
+    "rollershutter_door": "models/rollershutter_door.glb",
+    "hanging_industrial_lamp": "models/hanging_industrial_lamp.glb",
+    "portable_generator": "models/portable_generator.glb",
+    "power_box_01": "models/power_box_01.glb",
+    "ladder_sectioned_01": "models/ladder_sectioned_01.glb"
   },
   "credits": [
     {
@@ -161,6 +178,23 @@
       "type": "texture",
       "authors": [
         "Rob Tuytel"
+      ]
+    },
+    {
+      "id": "concrete_block_wall",
+      "name": "Concrete Block Wall",
+      "type": "texture",
+      "authors": [
+        "Charlotte Baglioni"
+      ]
+    },
+    {
+      "id": "corrugated_iron",
+      "name": "Corrugated Iron",
+      "type": "texture",
+      "authors": [
+        "Jenelle van Heerden",
+        "Dimitrios Savva"
       ]
     },
     {
@@ -242,8 +276,80 @@
       "authors": [
         "Mateusz Sadek"
       ]
+    },
+    {
+      "id": "steel_frame_shelves_01",
+      "name": "Steel Frame Shelves 01",
+      "type": "model",
+      "authors": [
+        "James Ray Cock"
+      ]
+    },
+    {
+      "id": "barrel_03",
+      "name": "Barrel 03",
+      "type": "model",
+      "authors": [
+        "Serhii Khromov"
+      ]
+    },
+    {
+      "id": "rollershutter_door",
+      "name": "Rollershutter Door",
+      "type": "model",
+      "authors": [
+        "MP"
+      ]
+    },
+    {
+      "id": "hanging_industrial_lamp",
+      "name": "Hanging Industrial Lamp",
+      "type": "model",
+      "authors": [
+        "Kuutti Siitonen"
+      ]
+    },
+    {
+      "id": "portable_generator",
+      "name": "Portable Generator",
+      "type": "model",
+      "authors": [
+        "James Ray Cock"
+      ]
+    },
+    {
+      "id": "power_box_01",
+      "name": "Power Box 01",
+      "type": "model",
+      "authors": [
+        "Rico Cilliers",
+        "Yann Kervran"
+      ]
+    },
+    {
+      "id": "ladder_sectioned_01",
+      "name": "Ladder Sectioned 01",
+      "type": "model",
+      "authors": [
+        "MP"
+      ]
     }
   ],
+  "decor": {
+    "textures": [
+      "concrete_block_wall",
+      "corrugated_iron"
+    ],
+    "models": [
+      "steel_frame_shelves_01",
+      "barrel_03",
+      "rollershutter_door",
+      "hanging_industrial_lamp",
+      "portable_generator",
+      "power_box_01",
+      "ladder_sectioned_01"
+    ]
+  },
   "sizes": {
     "hdri/aircraft_workshop_01_2k.hdr": 6907231,
     "hdri/aircraft_workshop_01_1k.hdr": 1771415,
@@ -266,6 +372,12 @@
     "textures/concrete_floor_02/diffuse.webp": 365624,
     "textures/concrete_floor_02/normal.webp": 201386,
     "textures/concrete_floor_02/arm.webp": 74032,
+    "textures/concrete_block_wall/diffuse.webp": 202556,
+    "textures/concrete_block_wall/normal.webp": 407392,
+    "textures/concrete_block_wall/arm.webp": 61910,
+    "textures/corrugated_iron/diffuse.webp": 127914,
+    "textures/corrugated_iron/normal.webp": 176244,
+    "textures/corrugated_iron/arm.webp": 37176,
     "models/metal_office_desk.glb": 127980,
     "models/plastic_monobloc_chair_01.glb": 149692,
     "models/cardboard_box_01.glb": 213320,
@@ -275,6 +387,13 @@
     "models/portable_searchlight.glb": 235628,
     "models/korean_fire_extinguisher_01.glb": 285328,
     "models/industrial_storage_cart.glb": 315700,
-    "models/metal_toolbox.glb": 256976
+    "models/metal_toolbox.glb": 256976,
+    "models/steel_frame_shelves_01.glb": 101144,
+    "models/barrel_03.glb": 104816,
+    "models/rollershutter_door.glb": 96532,
+    "models/hanging_industrial_lamp.glb": 256168,
+    "models/portable_generator.glb": 473580,
+    "models/power_box_01.glb": 320600,
+    "models/ladder_sectioned_01.glb": 360524
   }
 }

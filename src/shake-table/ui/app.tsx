@@ -79,9 +79,9 @@ function ControlRoom({ ctl }: Ctl) {
       </div>
       <div class="two">
         <button type="button" id="stressBtn" class="btn" aria-pressed={ui.stress.value} onClick={() => ctl.setStress(!ui.stress.value)}>Stress colors</button>
-        <label><span class="lbl">Lab hall</span>
+        <label><span class="lbl">Lighting</span>
           <select id="hall" value={ui.hall.value} onChange={(e) => void ctl.setHall(e.currentTarget.value)}>
-            <option value="aircraft">Test workshop</option><option value="hangar">Hangar</option><option value="foundry">Foundry hall</option>
+            <option value="aircraft">Daylight</option><option value="hangar">Work lights</option><option value="foundry">Warm evening</option>
           </select>
         </label>
       </div>
@@ -213,7 +213,7 @@ function Dialogs({ ctl }: Ctl) {
           <li>San Francisco City Hall base isolation retrofit after the 1989 Loma Prieta earthquake. Needs a primary source before students see it.</li>
         </ul>
         <h2>Credits</h2>
-        <p>Lab halls, textures and props: Poly Haven (CC0).</p>
+        <p>Lighting, textures and props: Poly Haven (CC0). The test hall itself is modeled for this lab.</p>
         <ul id="credits">
           {ui.credits.value.map((c) => <li>{c.name} ({c.type}) by {c.authors.join(' and ')}</li>)}
         </ul>

@@ -15,6 +15,7 @@ const manifest = JSON.parse(await readFile(join(ROOT, 'public/assets/manifest.js
   hdris: { key: string; file: string; fileLow: string }[];
   textures: Record<string, { diffuse: string; normal: string; arm: string }>;
   models: Record<string, string>;
+  decor: { textures: string[]; models: string[] };
   sizes: Record<string, number>;
 };
 const sz = (f: string): number => manifest.sizes[f] ?? 0;
@@ -26,8 +27,9 @@ for (const f of await readdir(built)) {
   if (/\.(js|css)$/.test(f)) code += gzipSync(await readFile(join(built, f))).length;
   else if (f.endsWith('.woff2')) code += (await stat(join(built, f))).size;
 }
-const textures = Object.values(manifest.textures).flatMap((t) => [t.diffuse, t.normal, t.arm]).reduce((s, f) => s + sz(f), 0);
-const models = Object.values(manifest.models).reduce((s, f) => s + sz(f), 0);
+// Hall dressing (decor) loads after the lab is usable, so it counts toward the total only.
+const textures = Object.entries(manifest.textures).filter(([id]) => !manifest.decor.textures.includes(id)).flatMap(([, t]) => [t.diffuse, t.normal, t.arm]).reduce((s, f) => s + sz(f), 0);
+const models = Object.entries(manifest.models).filter(([id]) => !manifest.decor.models.includes(id)).reduce((s, [, f]) => s + sz(f), 0);
 const hall = manifest.hdris[0]!;
 const first = { low: code + textures + models + sz(hall.fileLow), medium: code + textures + models + sz(hall.file) };
 const total = Object.values(manifest.sizes).reduce((a, b) => a + b, 0);

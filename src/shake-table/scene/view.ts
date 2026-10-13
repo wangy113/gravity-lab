@@ -8,7 +8,6 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
 import { assetUrl, type RuntimeManifest } from '../../core/assets/manifest.ts';
 import { TIERS, type Tier } from '../../core/render/quality.ts';
 import type { SimEvent } from '../../core/sim/events.ts';
@@ -16,7 +15,8 @@ import { TOP, TX, TZ } from '../constants.ts';
 import { FALLBACK, type PropId } from '../contents/props.ts';
 import { SPRING_FIELDS, type Lab } from '../lab.ts';
 import type { BodyRec } from '../sim/simulation.ts';
-import { loadMaterials, mesh, tiledBox, type Materials } from './materials.ts';
+import { buildHall, upgradeMaterial, type HallView } from './hall.ts';
+import { loadMaterials, mesh, polyMaterial, tiledBox, type Materials } from './materials.ts';
 
 export type CameraMode = 'orbit' | 'side' | 'ride';
 const STATIC_PROPS: [string, number, number, number][] = [
@@ -52,10 +52,8 @@ export class LabView {
   private mat!: Materials;
   private readonly models: Record<string, THREE.Object3D> = {};
   private manifest: RuntimeManifest | null = null;
-  private sky: GroundedSkybox | null = null;
   private envTex: THREE.Texture | null = null;
-  private floorPatch: THREE.Mesh | null = null;
-  private floorTint = new THREE.Color(1, 1, 1);
+  private hall: HallView | null = null;
   private generation = -1;
   private bodyViews: (THREE.Object3D | null)[] = [];
   private memberViews: MemberView[] = [];
@@ -79,11 +77,13 @@ export class LabView {
     r.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap was removed in r186
     this.renderer = r;
     this.scene.background = new THREE.Color(0x1a1e22);
+    // A little haze gives the hall depth.
+    this.scene.fog = new THREE.Fog(0xa7adb1, 38, 120);
     this.camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.05, 500);
     this.camera.position.set(12.5, 3.3, 14.5);
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.target.set(-0.3, 2.7, 0);
-    Object.assign(this.controls, { enableDamping: true, maxPolarAngle: Math.PI * 0.49, minDistance: 3, maxDistance: 40 });
+    Object.assign(this.controls, { enableDamping: true, maxPolarAngle: Math.PI * 0.49, minDistance: 3, maxDistance: 26 });
     this.controls.addEventListener('change', () => (this.dirty = true));
 
     const sun = this.sun;
@@ -112,7 +112,7 @@ export class LabView {
     this.manifest = manifest;
     const hallP = this.loadHall(hall).catch(() => undefined).then(() => step('Loading textures and props'));
     const matsP = loadMaterials(manifest).then((m) => { this.mat = m; step(); });
-    const modelIds = Object.keys(manifest?.models ?? {});
+    const modelIds = this.firstModels();
     const modelsP = modelIds.map((id) => this.loadModel(id).then(() => step()));
     await Promise.all([hallP, matsP, ...modelsP]);
     this.sharedGeo();
@@ -120,7 +120,13 @@ export class LabView {
   }
 
   get loadSteps(): number {
-    return 2 + Object.keys(this.manifest?.models ?? {}).length;
+    return 2 + this.firstModels().length;
+  }
+
+  /** Models needed before the lab is usable: everything except the hall dressing. */
+  private firstModels(): string[] {
+    const decor = this.manifest?.decor?.models ?? [];
+    return Object.keys(this.manifest?.models ?? {}).filter((id) => !decor.includes(id));
   }
 
   async loadHall(key: string): Promise<void> {
@@ -132,21 +138,38 @@ export class LabView {
       const tex = await new HDRLoader().setDataType(THREE.HalfFloatType).loadAsync(assetUrl(TIERS[this.tier].hdri === 'low' ? H.fileLow : H.file));
       tex.mapping = THREE.EquirectangularReflectionMapping;
       this.sun.position.set(H.sun[0] * 30, H.sun[1] * 30, H.sun[2] * 30);
-      this.floorTint.setRGB(...H.floorTint);
-      if (this.floorPatch) (this.floorPatch.material as THREE.MeshStandardMaterial).color.copy(this.floorTint);
-      if (this.sky) { this.scene.remove(this.sky); this.sky.geometry.dispose(); (this.sky.material as THREE.Material).dispose(); }
       this.envTex?.dispose();
       this.envTex = tex;
+      // The HDRI lights the hall and shows in reflections. The hall itself is modeled (hall.ts).
       this.scene.environment = tex;
-      this.sky = new GroundedSkybox(tex, H.groundHeight, 90);
-      this.sky.position.y = H.groundHeight - 0.01;
-      this.scene.add(this.sky);
     } catch (e) {
       console.warn('HDRI failed, using fallback', e);
       const pm = new THREE.PMREMGenerator(this.renderer);
       this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
       throw e;
     }
+  }
+
+  /** Hall textures and dressing props: loaded after the lab is usable (decor assets). */
+  async loadDecor(): Promise<void> {
+    const decor = this.manifest?.decor;
+    if (!decor || !this.hall) return;
+    const hm = this.hall.mats;
+    // Tints are linear multipliers: above 1 lightens a dark texture, uneven channels shift its hue.
+    const tex: [string, [THREE.MeshStandardMaterial, [number, number, number]][]][] = [
+      ['concrete_block_wall', [[hm.block, [1.9, 1.95, 2.05]]]],
+      ['corrugated_iron', [[hm.cladding, [0.62, 0.72, 0.86]], [hm.roof, [0.75, 0.75, 0.78]]]],
+    ];
+    await Promise.all([
+      ...tex.filter(([id]) => decor.textures.includes(id)).map(async ([id, targets]) => {
+        const loaded = await polyMaterial(this.manifest, id);
+        for (const [target, tint] of targets) upgradeMaterial(target, loaded, tint);
+        this.dirty = true;
+      }),
+      ...decor.models.map((id) => this.loadModel(id)),
+    ]);
+    this.hall.dress(this.models);
+    this.dirty = true;
   }
 
   private async loadModel(id: string): Promise<void> {
@@ -180,31 +203,8 @@ export class LabView {
       o.position.set(x, y, z);
       this.stat.add(o);
     };
-    // PBR floor patch that fades into the HDRI floor and catches shadows
-    const R = 24, fg = new THREE.CircleGeometry(R, 96);
-    fg.rotateX(-Math.PI / 2);
-    const uv = fg.attributes.uv as THREE.BufferAttribute;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * R * 2) / 3, (uv.getY(i) * R * 2) / 3);
-    const ac = document.createElement('canvas');
-    ac.width = ac.height = 256;
-    const ax = ac.getContext('2d')!;
-    const gr = ax.createRadialGradient(128, 128, 0, 128, 128, 128);
-    gr.addColorStop(0, '#fff'); gr.addColorStop(0.45, '#fff'); gr.addColorStop(0.95, '#000');
-    ax.fillStyle = gr; ax.fillRect(0, 0, 256, 256);
-    const fm = M.floor.clone();
-    fm.alphaMap = new THREE.CanvasTexture(ac);
-    fm.alphaMap.channel = 1;
-    fm.transparent = true;
-    fm.color.copy(this.floorTint);
-    const p = fg.attributes.position as THREE.BufferAttribute;
-    const uv1 = new THREE.BufferAttribute(new Float32Array(p.count * 2), 2);
-    for (let i = 0; i < p.count; i++) uv1.setXY(i, p.getX(i) / (2 * R) + 0.5, p.getZ(i) / (2 * R) + 0.5);
-    fg.setAttribute('uv1', uv1);
-    this.floorPatch = new THREE.Mesh(fg, fm);
-    this.floorPatch.receiveShadow = true;
-    this.floorPatch.position.y = 0.004;
-    this.floorPatch.renderOrder = -1;
-    this.stat.add(this.floorPatch);
+    this.hall = buildHall(M.floor);
+    this.stat.add(this.hall.group);
     // pit walls (top flush with the table) and the reaction wall on the -x side
     add(10.6, TOP, 0.7, -0.5, TOP / 2, 3.6, M.found);
     add(10.6, TOP, 0.7, -0.5, TOP / 2, -3.6, M.found);
@@ -486,7 +486,7 @@ export class LabView {
 
   /** Positions the camera for the current mode, with a little shake while the table runs. */
   updateCamera(lab: Lab): void {
-    if (this.camMode === 'orbit') this.controls.update();
+    if (this.camMode === 'orbit') { this.controls.update(); this.hall?.clamp(this.camera.position); }
     else if (this.camMode === 'side') { this.camera.position.set(0.3, 3.9, 21); this.camera.lookAt(0.3, 3.75, 0); }
     else {
       const lv = lab.sim.levels[lab.sim.specimen.spec.base.kind === 'fixed' ? 0 : 1];
@@ -557,7 +557,7 @@ export class LabView {
   zoomBy(factor: number): void {
     this.toOrbit();
     const off = this.camera.position.clone().sub(this.controls.target);
-    const len = Math.min(40, Math.max(3, off.length() * factor));
+    const len = Math.min(26, Math.max(3, off.length() * factor));
     this.camera.position.copy(this.controls.target).add(off.setLength(len));
   }
 

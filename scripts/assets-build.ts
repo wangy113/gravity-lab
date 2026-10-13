@@ -30,6 +30,7 @@ interface Meta {
   textures: Record<string, { diffuse: string; normal: string; arm: string }>;
   models: Record<string, string>;
   credits: { id: string; name: string; type: string; authors: string[] }[];
+  decor: { textures: string[]; models: string[] };
 }
 
 const size = async (p: string): Promise<number> => (await stat(p)).size;
@@ -54,7 +55,7 @@ async function main(): Promise<void> {
   await MeshoptDecoder.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
 
-  const runtime = { hdris: [] as unknown[], textures: {} as Meta['textures'], models: {} as Record<string, string>, credits: meta.credits, sizes: {} as Record<string, number> };
+  const runtime = { hdris: [] as unknown[], textures: {} as Meta['textures'], models: {} as Record<string, string>, credits: meta.credits, decor: meta.decor, sizes: {} as Record<string, number> };
 
   for (const h of meta.hdris) {
     const file = `hdri/${h.id}_2k.hdr`, fileLow = `hdri/${h.id}_1k.hdr`;
