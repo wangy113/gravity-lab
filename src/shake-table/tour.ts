@@ -33,7 +33,7 @@ export const STOPS: Stop[] = [
   { title: 'Float it', tags: ['model', 'real'], cfg: { type: 'isolated', mode: 'quake', g: 0.35, cam: 'ride', stress: false },
     body: `<p>Base isolation sets the whole building on rubber bearings. The bearings are soft side to side, so the ground moves under the building while the floors above move slowly and gently.</p><p>San Francisco City Hall was retrofitted with base isolators after the 1989 Loma Prieta earthquake.</p><p>The camera rides along on floor 2.</p>`,
     notice: 'Watch the crates on floor 2. Then switch to Orbit and watch the black bearings. Where did the motion go?' },
-  { title: 'What falls first', tags: ['real', 'model'], cfg: { type: 'bare', mode: 'quake', g: 0.3, cam: 'orbit', stress: false },
+  { title: 'What falls first', tags: ['real', 'model'], cfg: { type: 'bare', mode: 'quake', g: 0.4, cam: 'orbit', stress: false },
     body: `<p>The block wall on the right has no steel inside. Furniture, shelves and ceilings are not part of the structure either. Engineers call these nonstructural parts.</p><p>In studies of offices, hotels and hospitals, nonstructural parts made up about half to 70 percent of a building's cost. They are also what hurts people in a room.</p>`,
     notice: 'After the quake, press Replay and pick 0.25x. Name three things in this scene that would hurt someone standing nearby.' },
 ];

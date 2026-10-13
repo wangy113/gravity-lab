@@ -1,4 +1,4 @@
-import type RAPIER_NS from '@dimforge/rapier3d-compat';
+import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { BuildingType } from '../constants.ts';
 import type { ShakeMode } from '../motion/table.ts';
 import { ShakeTableSim, type SimOptions } from './simulation.ts';

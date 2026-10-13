@@ -5,7 +5,7 @@ import '@fontsource/barlow/700.css';
 import '@fontsource/jetbrains-mono/500.css';
 import '@fontsource/jetbrains-mono/700.css';
 import './styles.css';
-import RAPIER from '@dimforge/rapier3d-compat';
+import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import { render } from 'preact';
 import { loadManifest } from './core/assets/manifest.ts';
 import { Controller } from './shake-table/controller.ts';

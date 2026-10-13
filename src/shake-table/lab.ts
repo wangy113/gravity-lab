@@ -2,7 +2,7 @@
  * The running lab: simulation, fixed-step clock, replay and chart history. The view, audio
  * and UI read from here and change things only through its methods.
  */
-import type RAPIER_NS from '@dimforge/rapier3d-compat';
+import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { SimEvent } from '../core/sim/events.ts';
 import { FixedStepHost } from '../core/sim/host.ts';
 import { PoseBuffer, readPoses } from '../core/sim/poses.ts';

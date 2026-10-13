@@ -5,7 +5,7 @@
     "file": "prototype/index.html",
     "sha256": "01f6709a48f99670cbae0a413cc1492aeb729913bb0c7f262d819b7911eabeb0",
     "three": "0.181.2",
-    "rapier": "@dimforge/rapier3d-compat 0.19.3"
+    "rapier": "@dimforge/rapier3d-deterministic-compat 0.19.3"
   },
   "environment": {
     "browser": "Chromium 141.0.7390.37 headless, SwiftShader WebGL",

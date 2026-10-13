@@ -25,7 +25,7 @@
     "vitest": "5.0.3"
   },
   "dependencies": {
-    "@dimforge/rapier3d-compat": "0.19.3",
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
     "@fontsource/barlow": "5.3.0",
     "@fontsource/jetbrains-mono": "5.3.0",
     "@preact/signals": "2.11.3",

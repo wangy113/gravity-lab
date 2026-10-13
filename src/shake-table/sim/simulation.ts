@@ -4,7 +4,7 @@
  * failStory, buildWall, buildFurniture, detectImpacts). No three.js and no DOM, so it runs
  * in the browser, in a worker or in Node.
  */
-import type RAPIER_NS from '@dimforge/rapier3d-compat';
+import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { SimEvent, Vec3 } from '../../core/sim/events.ts';
 import { fromUnitVectors, qinv, qmul, qyaw, rotate, type Q4, type V3 } from '../../core/sim/math.ts';
 import { lcg, type Rng } from '../../core/sim/rng.ts';
@@ -260,7 +260,9 @@ export class ShakeTableSim {
 
   private addProp(id: PropId, x: number, yBottom: number, z: number, ry: number, mass: number): number {
     const size = propSize(id, this.useModelSizes);
-    const b = this.dynBody(x, yBottom + size.y / 2 + 0.005, z, qyaw(ry), false);
+    // Props may sleep once settled (the prototype kept them awake). Shake wakes every body,
+    // and on Rapier 0.21 a resting scene costs about a ninth as much with sleeping props.
+    const b = this.dynBody(x, yBottom + size.y / 2 + 0.005, z, qyaw(ry), true);
     this.world.createCollider(this.R.ColliderDesc.cuboid((size.x / 2) * 0.97, size.y / 2, (size.z / 2) * 0.97).setMass(mass).setFriction(0.45).setRestitution(0.05), b);
     this.register(b, mass, 'prop', { type: 'prop', prop: id, size });
     return yBottom + size.y;

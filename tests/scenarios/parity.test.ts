@@ -2,7 +2,7 @@
  * Phase 1 parity: the ported simulation must reproduce what the prototype measurably did
  * (tests/scenarios/baseline.json, recorded by scripts/characterize-prototype.ts).
  */
-import RAPIER from '@dimforge/rapier3d-compat';
+import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import { beforeAll, describe, expect, it } from 'vitest';
 import baseline from './baseline.json' with { type: 'json' };
 import { runScenario, type ScenarioConfig } from '../../src/shake-table/sim/scenario.ts';
