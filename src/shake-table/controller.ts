@@ -5,7 +5,6 @@
 import { Synth } from '../core/audio/synth.ts';
 import type { BuildingType } from './constants.ts';
 import { guessTier, lowerTier, saveChoice, TIERS, type TierChoice } from '../core/render/quality.ts';
-import { BUILDINGS } from './constants.ts';
 import { CHART_SECONDS, type Lab } from './lab.ts';
 import { downloadReport, emptyNotebook, saveNotebook, type Notebook, type RunResult } from './notebook.ts';
 import type { ShakeMode } from './motion/table.ts';
@@ -363,7 +362,7 @@ export class Controller {
     this.run = null;
     const r: RunResult = {
       at: new Date().toISOString(),
-      building: BUILDINGS[sim.type].label,
+      building: sim.specimen.spec.name,
       shaking: MODE_NAMES[d.mode],
       strength: d.g,
       frequency: d.mode === 'steady' ? d.f : null,

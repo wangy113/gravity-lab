@@ -16,7 +16,8 @@
     "assets:sync": "node scripts/assets-sync.ts",
     "test:e2e": "playwright test",
     "assets:build": "node scripts/assets-build.ts",
-    "assets:budget": "node scripts/assets-budget.ts"
+    "assets:budget": "node scripts/assets-budget.ts",
+    "fingerprint": "node scripts/fingerprint.ts"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",

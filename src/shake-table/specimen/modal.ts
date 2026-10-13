@@ -4,13 +4,14 @@
  * prototype's `eigSym` and `computeNatBeat` (prototype/index.html).
  */
 
-/** Eigenvalues of a symmetric matrix by cyclic Jacobi rotation, ascending. */
-export function symmetricEigenvalues(matrix: readonly (readonly number[])[]): number[] {
+/** Eigenvalues (ascending) and unit eigenvectors of a symmetric matrix, by cyclic Jacobi rotation. */
+export function symmetricEigen(matrix: readonly (readonly number[])[]): { values: number[]; vectors: number[][] } {
   const n = matrix.length;
   const a = matrix.map((row) => row.slice());
+  const v: number[][] = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
   const at = (i: number, j: number): number => a[i]![j]!;
-  const set = (i: number, j: number, v: number): void => {
-    a[i]![j] = v;
+  const set = (i: number, j: number, x: number): void => {
+    a[i]![j] = x;
   };
   for (let sweep = 0; sweep < 60; sweep++) {
     let off = 0;
@@ -27,6 +28,10 @@ export function symmetricEigenvalues(matrix: readonly (readonly number[])[]): nu
           const akq = at(k, q);
           set(k, p, c * akp - s * akq);
           set(k, q, s * akp + c * akq);
+          const vkp = v[k]![p]!;
+          const vkq = v[k]![q]!;
+          v[k]![p] = c * vkp - s * vkq;
+          v[k]![q] = s * vkp + c * vkq;
         }
         for (let k = 0; k < n; k++) {
           const apk = at(p, k);
@@ -37,19 +42,23 @@ export function symmetricEigenvalues(matrix: readonly (readonly number[])[]): nu
       }
     }
   }
-  return a.map((_, i) => at(i, i)).sort((x, y) => x - y);
+  const order = a.map((_, i) => i).sort((x, y) => at(x, x) - at(y, y));
+  return { values: order.map((i) => at(i, i)), vectors: order.map((i) => v.map((row) => row[i]!)) };
+}
+
+/** Eigenvalues of a symmetric matrix, ascending. */
+export function symmetricEigenvalues(matrix: readonly (readonly number[])[]): number[] {
+  return symmetricEigen(matrix).values;
 }
 
 /**
- * Natural frequencies in Hz, lowest first.
- * @param masses floor masses in kg, bottom to top
- * @param stiffnesses story stiffnesses in N/m, bottom to top; story i joins floor i to the floor (or table) below
+ * A chain of masses joined by springs, the first spring tied to a fixed base, as a
+ * mass-normalized matrix M^-1/2 X M^-1/2 (X is the stiffness or damping of each link).
  */
-export function shearBuildingFrequencies(masses: readonly number[], stiffnesses: readonly number[]): number[] {
+export function chainMatrix(masses: readonly number[], links: readonly number[]): number[][] {
   const n = masses.length;
-  if (stiffnesses.length !== n) throw new Error('need one story stiffness per floor');
-  const k = (i: number): number => (i < n ? stiffnesses[i]! : 0);
-  // Mass-normalized stiffness M^-1/2 K M^-1/2 keeps the matrix symmetric for unequal masses.
+  if (links.length !== n) throw new Error('need one link per mass');
+  const k = (i: number): number => (i < n ? links[i]! : 0);
   const a: number[][] = Array.from({ length: n }, () => Array<number>(n).fill(0));
   for (let i = 0; i < n; i++) {
     a[i]![i] = (k(i) + k(i + 1)) / masses[i]!;
@@ -59,5 +68,15 @@ export function shearBuildingFrequencies(masses: readonly number[], stiffnesses:
       a[i + 1]![i] = v;
     }
   }
-  return symmetricEigenvalues(a).map((l) => Math.sqrt(Math.max(0, l)) / (2 * Math.PI));
+  return a;
+}
+
+/**
+ * Natural frequencies in Hz, lowest first.
+ * @param masses floor masses in kg, bottom to top
+ * @param stiffnesses story stiffnesses in N/m, bottom to top; story i joins floor i to the floor (or table) below
+ */
+export function shearBuildingFrequencies(masses: readonly number[], stiffnesses: readonly number[]): number[] {
+  if (stiffnesses.length !== masses.length) throw new Error('need one story stiffness per floor');
+  return symmetricEigenvalues(chainMatrix(masses, stiffnesses)).map((l) => Math.sqrt(Math.max(0, l)) / (2 * Math.PI));
 }

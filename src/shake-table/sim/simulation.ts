@@ -8,12 +8,12 @@ import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { SimEvent, Vec3 } from '../../core/sim/events.ts';
 import { fromUnitVectors, qinv, qmul, qyaw, rotate, type Q4, type V3 } from '../../core/sim/math.ts';
 import { lcg, type Rng } from '../../core/sim/rng.ts';
-import {
-  BUILDINGS, CH, CR, CV, DT, HALF, ISO_H, ISO_LIMIT, IR, KR, KV, M, NS, RIM, ST, STORY, TOP, TX, TZ, X0,
-  type BuildingType,
-} from '../constants.ts';
+import { DT, RIM, STORY, TOP, TX, TZ, X0, type BuildingType } from '../constants.ts';
 import { propSize, type PropId, type PropSize } from '../contents/props.ts';
+import { compileSpecimen, type CompiledSpecimen, type CompiledSpring, type Member } from '../specimen/compile.ts';
 import { shearBuildingFrequencies } from '../specimen/modal.ts';
+import { PRESETS, type SpecimenSpec } from '../specimen/spec.ts';
+import { MOAT_FACTOR } from '../specimen/stability.ts';
 import { TableDrive, type ShakeMode } from '../motion/table.ts';
 
 type Rapier = typeof RAPIER_NS;
@@ -23,7 +23,7 @@ export type BodyKind = 'table' | 'slab' | 'block' | 'prop' | 'piece';
 /** What the view needs to draw a body. */
 export type BodyShape =
   | { type: 'table' }
-  | { type: 'slab' }
+  | { type: 'slab'; half: { x: number; y: number; z: number } }
   | { type: 'block'; w: number; h: number; d: number; tint: number; uv: [number, number] }
   | { type: 'prop'; prop: PropId; size: PropSize }
   | { type: 'member-piece'; member: 'col' | 'brace'; len: number; story: number }
@@ -40,8 +40,7 @@ export interface BodyRec {
   cool: number; // impact cooldown, s
 }
 
-export type MemberKind = 'col' | 'brace' | 'bear';
-export interface Member { la: V3; lb: V3; kind: MemberKind }
+export type { Member, MemberKind } from '../specimen/compile.ts';
 
 export interface Spring {
   index: number;
@@ -49,6 +48,7 @@ export interface Spring {
   rest: V3;
   k: number; c: number; kv: number; cv: number; kr: number; cr: number;
   iso: boolean; label: string; yieldR: number; ultR: number;
+  moatGap: number; driftHeight: number; // m
   damage: number; failed: boolean;
   r: number; // drift ratio
   d: number; // lateral displacement, m
@@ -69,6 +69,8 @@ const IMPACT_WINDOW = 4; // steps: impacts are judged over 1/60 s, the prototype
 export class ShakeTableSim {
   readonly drive = new TableDrive();
   type: BuildingType;
+  /** The compiled specimen on the table now. */
+  specimen!: CompiledSpecimen;
   world!: RAPIER_NS.World;
   bodies: BodyRec[] = [];
   springs: Spring[] = [];
@@ -101,9 +103,15 @@ export class ShakeTableSim {
     return this.springs.some((s) => s.failed);
   }
 
-  /** Rebuilds the world for a building type (prototype `setType` and `resetWorld`). */
-  reset(type: BuildingType = this.type): void {
+  /**
+   * Rebuilds the world (prototype `setType` and `resetWorld`). Pass a specification to test
+   * a building other than the preset for `type`. Throws a SpecimenError, with plain
+   * messages, when the specification is out of bounds or would not integrate stably.
+   */
+  reset(type: BuildingType = this.type, spec: SpecimenSpec = PRESETS[type]): void {
+    const compiled = compileSpecimen(spec);
     this.type = type;
+    this.specimen = compiled;
     this.generation++;
     if (this.world) this.world.free();
     const R = this.R;
@@ -177,7 +185,7 @@ export class ShakeTableSim {
   natBeat(): number {
     if (this.anyFailed) return 0;
     const ks = this.springs.map((s) => s.k * (1 - 0.3 * s.damage));
-    return shearBuildingFrequencies(ks.map(() => M), ks)[0] ?? 0;
+    return shearBuildingFrequencies(this.springs.map((s) => s.b.mass), ks)[0] ?? 0;
   }
 
   /** World-space ends of a member of a spring, for drawing and for failure pieces. */
@@ -202,49 +210,28 @@ export class ShakeTableSim {
     return this.world.createRigidBody(d);
   }
 
-  private addSlab(y: number): BodyRec {
-    const b = this.dynBody(X0, y, 0, null, false);
-    this.world.createCollider(this.R.ColliderDesc.cuboid(HALF, ST / 2, HALF).setDensity(M / (HALF * 2 * ST * HALF * 2)).setFriction(0.7), b);
-    const o = this.register(b, M, 'slab', { type: 'slab' });
+  private addSlab(f: CompiledSpecimen['floors'][number]): BodyRec {
+    const { x: hx, y: hy, z: hz } = f.half;
+    const b = this.dynBody(X0, f.y, 0, null, false);
+    this.world.createCollider(this.R.ColliderDesc.cuboid(hx, hy, hz).setDensity(f.mass / (hx * 2 * (hy * 2) * hz * 2)).setFriction(0.7), b);
+    const o = this.register(b, f.mass, 'slab', { type: 'slab', half: f.half });
     this.levels.push(o);
     return o;
   }
 
-  private makeSpring(a: BodyRec, b: BodyRec, rest: V3, k: number, zeta: number, mass: number, opts: Partial<Spring> & { label: string }): Spring {
+  private addSpring(cs: CompiledSpring): Spring {
     const s: Spring = {
-      index: this.springs.length, a, b, aDyn: a !== this.table, rest, k, c: 2 * zeta * Math.sqrt(k * mass),
-      kv: KV, cv: CV, kr: KR, cr: CR, iso: false, yieldR: 0, ultR: Infinity,
-      damage: 0, failed: false, r: 0, d: 0, members: [], ...opts,
+      ...cs, index: this.springs.length, a: cs.lower < 0 ? this.table : this.levels[cs.lower]!, b: this.levels[cs.upper]!,
+      aDyn: cs.lower >= 0, damage: 0, failed: false, r: 0, d: 0, members: cs.members.map((m) => ({ ...m })),
     };
     this.springs.push(s);
     return s;
   }
 
+  /** Floors and springs from the compiled specimen (prototype `buildTower`). */
   private buildTower(): void {
-    const T = BUILDINGS[this.type];
-    let lower = this.table, lowerTopY = TOP, lowerHalf = 0.15, lx = X0;
-    if (T.iso) {
-      const yb = TOP + ISO_H + ST / 2;
-      const base = this.addSlab(yb);
-      const s = this.makeSpring(this.table, base, { x: X0, y: 0.15 + ISO_H + ST / 2, z: 0 }, T.kIso!, T.zIso!, M * (NS + 1), { iso: true, label: 'Isolators' });
-      for (const cx of [-1.1, 1.1]) for (const cz of [-1.1, 1.1]) s.members.push({ la: { x: X0 + cx, y: 0.15, z: cz }, lb: { x: cx, y: -ST / 2, z: cz }, kind: 'bear' });
-      lower = base; lowerTopY = yb + ST / 2; lowerHalf = ST / 2; lx = 0;
-    }
-    let prevCenter = lower === this.table ? TOP - 0.15 : lowerTopY - ST / 2;
-    for (let i = 0; i < NS; i++) {
-      const lh = i === 0 ? lowerHalf : ST / 2;
-      const y = prevCenter + lh + CH + ST / 2;
-      const slab = this.addSlab(y);
-      const rest = { x: i === 0 ? lx : 0, y: y - prevCenter, z: 0 };
-      const s = this.makeSpring(lower, slab, rest, T.k, T.zeta, M, { label: `Story ${i + 1}`, yieldR: T.yieldR, ultR: T.ultR });
-      const C = HALF - 0.15;
-      for (const cx of [-C, C]) for (const cz of [-C, C]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -ST / 2, z: cz }, kind: 'col' });
-      if (T.braced) for (const cz of [-C, C]) {
-        s.members.push({ la: { x: rest.x - C, y: lh, z: cz }, lb: { x: C, y: -ST / 2, z: cz }, kind: 'brace' });
-        s.members.push({ la: { x: rest.x + C, y: lh, z: cz }, lb: { x: -C, y: -ST / 2, z: cz }, kind: 'brace' });
-      }
-      lower = slab; prevCenter = y;
-    }
+    for (const f of this.specimen.floors) this.addSlab(f);
+    for (const cs of this.specimen.springs) this.addSpring(cs);
   }
 
   /** Unreinforced block wall on the +x side of the table (prototype `buildWall`). */
@@ -276,7 +263,7 @@ export class ShakeTableSim {
 
   /** Furniture inside the building and loose props on the table (prototype `buildFurniture`). */
   private buildFurniture(): void {
-    const f1 = BUILDINGS[this.type].iso ? TOP + ISO_H + ST : TOP;
+    const f1 = this.specimen.groundFloor;
     const fl = (n: number): number => f1 + n * STORY;
     const X = X0;
     const deskTop = this.addProp('metal_office_desk', X + 0.35, f1, -0.75, 0, 35);
@@ -309,10 +296,10 @@ export class ShakeTableSim {
       let fx = -kf * dx - s.c * (vb.x - va.x), fz = -kf * dz - s.c * (vb.z - va.z);
       const fy = -s.kv * dy - s.cv * (vb.y - va.y);
       const d = Math.hypot(dx, dz);
-      s.d = d; s.r = d / CH;
-      if (s.iso && d > ISO_LIMIT) {
-        const e = d - ISO_LIMIT;
-        fx -= (s.k * 60 * e * dx) / d; fz -= (s.k * 60 * e * dz) / d;
+      s.d = d; s.r = d / s.driftHeight;
+      if (s.iso && d > s.moatGap) {
+        const e = d - s.moatGap;
+        fx -= (s.k * MOAT_FACTOR * e * dx) / d; fz -= (s.k * MOAT_FACTOR * e * dz) / d;
       }
       B.applyImpulse({ x: fx * DT, y: fy * DT, z: fz * DT }, true);
       if (s.aDyn) A.applyImpulse({ x: -fx * DT, y: -fy * DT, z: -fz * DT }, true);
@@ -378,7 +365,8 @@ export class ShakeTableSim {
     for (let i = 0; i < 14; i++) {
       const sz = 0.08 + rand() * 0.16;
       const uv: [number, number] = [this.visual(), this.visual()];
-      const ex = (rand() < 0.5 ? -1 : 1) * HALF * (0.6 + rand() * 0.45), ez = (rand() - 0.5) * HALF * 2;
+      const hx = this.specimen.floors[0]!.half.x, hz = this.specimen.floors[0]!.half.z;
+      const ex = (rand() < 0.5 ? -1 : 1) * hx * (0.6 + rand() * 0.45), ez = (rand() - 0.5) * hz * 2;
       const body = this.dynBody(p.x + ex, p.y - 0.2, p.z + ez, null, true);
       this.world.createCollider(R.ColliderDesc.cuboid(sz / 2, sz * 0.35, sz * 0.6).setMass(4).setFriction(0.6).setRestitution(0.2), body);
       body.setLinvel({ x: vel.x + (rand() - 0.5) * 3, y: rand() * 2, z: vel.z + (rand() - 0.5) * 3 }, true);

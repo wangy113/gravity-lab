@@ -12,7 +12,7 @@ import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
 import { assetUrl, type RuntimeManifest } from '../../core/assets/manifest.ts';
 import { TIERS, type Tier } from '../../core/render/quality.ts';
 import type { SimEvent } from '../../core/sim/events.ts';
-import { BUILDINGS, TOP, TX, TZ } from '../constants.ts';
+import { TOP, TX, TZ } from '../constants.ts';
 import { FALLBACK, type PropId } from '../contents/props.ts';
 import { SPRING_FIELDS, type Lab } from '../lab.ts';
 import type { BodyRec } from '../sim/simulation.ts';
@@ -290,7 +290,11 @@ export class LabView {
         v = t;
         break;
       }
-      case 'slab': v = mesh(this.geo.slab!, M.slab); break;
+      case 'slab': {
+        const h = s.half; // the preset slab is 3 m by 0.2 m by 3 m
+        v = h.x === 1.5 && h.y === 0.1 && h.z === 1.5 ? mesh(this.geo.slab!, M.slab) : mesh(tiledBox(h.x * 2, h.y * 2, h.z * 2, 1.5), M.slab);
+        break;
+      }
       case 'block': v = mesh(tiledBox(s.w, s.h, s.d, 0.7, s.uv), M.blocks[s.tint]!); break;
       case 'prop': v = this.propView(s.prop); break;
       case 'member-piece': {
@@ -485,7 +489,7 @@ export class LabView {
     if (this.camMode === 'orbit') this.controls.update();
     else if (this.camMode === 'side') { this.camera.position.set(0.3, 3.9, 21); this.camera.lookAt(0.3, 3.75, 0); }
     else {
-      const lv = lab.sim.levels[BUILDINGS[lab.sim.type].iso ? 1 : 0];
+      const lv = lab.sim.levels[lab.sim.specimen.spec.base.kind === 'fixed' ? 0 : 1];
       const o = lv && this.bodyViews[lv.id];
       if (o) {
         this._e.set(-1.25, 1.35, 1.2).applyQuaternion(o.quaternion).add(o.position);
