@@ -18,6 +18,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Poly Haven assets are fetched at build time, checked against assets/assets.lock.json
+      # by md5, and cached between runs. Phase 2 commits optimized copies instead.
+      - uses: actions/cache@v4
+        with:
+          path: public/assets
+          key: polyhaven-${{ hashFiles('assets/manifest.json', 'assets/assets.lock.json') }}
+      - run: npm run assets:sync
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

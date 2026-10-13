@@ -1,0 +1,409 @@
+/**
+ * The shake table simulation: a Rapier world with the table, the building, the block wall
+ * and the furniture. Ported from the prototype (resetWorld, buildTower, applySprings,
+ * failStory, buildWall, buildFurniture, detectImpacts). No three.js and no DOM, so it runs
+ * in the browser, in a worker or in Node.
+ */
+import type RAPIER_NS from '@dimforge/rapier3d-compat';
+import type { SimEvent, Vec3 } from '../../core/sim/events.ts';
+import { fromUnitVectors, qinv, qmul, qyaw, rotate, type Q4, type V3 } from '../../core/sim/math.ts';
+import { lcg, type Rng } from '../../core/sim/rng.ts';
+import {
+  BUILDINGS, CH, CR, CV, DT, HALF, ISO_H, ISO_LIMIT, IR, KR, KV, M, NS, RIM, ST, STORY, TOP, TX, TZ, X0,
+  type BuildingType,
+} from '../constants.ts';
+import { propSize, type PropId, type PropSize } from '../contents/props.ts';
+import { shearBuildingFrequencies } from '../specimen/modal.ts';
+import { TableDrive, type ShakeMode } from '../motion/table.ts';
+
+type Rapier = typeof RAPIER_NS;
+type RigidBody = RAPIER_NS.RigidBody;
+
+export type BodyKind = 'table' | 'slab' | 'block' | 'prop' | 'piece';
+/** What the view needs to draw a body. */
+export type BodyShape =
+  | { type: 'table' }
+  | { type: 'slab' }
+  | { type: 'block'; w: number; h: number; d: number; tint: number; uv: [number, number] }
+  | { type: 'prop'; prop: PropId; size: PropSize }
+  | { type: 'member-piece'; member: 'col' | 'brace'; len: number; story: number }
+  | { type: 'chunk'; size: number; uv: [number, number] };
+
+export interface BodyRec {
+  id: number;
+  body: RigidBody;
+  kind: BodyKind;
+  mass: number;
+  shape: BodyShape;
+  pv: V3; // velocity at the last impact check
+  cool: number; // impact cooldown, s
+}
+
+export type MemberKind = 'col' | 'brace' | 'bear';
+export interface Member { la: V3; lb: V3; kind: MemberKind }
+
+export interface Spring {
+  index: number;
+  a: BodyRec; b: BodyRec; aDyn: boolean;
+  rest: V3;
+  k: number; c: number; kv: number; cv: number; kr: number; cr: number;
+  iso: boolean; label: string; yieldR: number; ultR: number;
+  damage: number; failed: boolean;
+  r: number; // drift ratio
+  d: number; // lateral displacement, m
+  members: Member[];
+}
+
+export interface SimOptions {
+  type?: BuildingType;
+  /** Seed for debris and other random choices that affect physics. */
+  seed?: number;
+  /** Use prop sizes measured from the Poly Haven models (default) or the prototype's fallback boxes. */
+  useModelSizes?: boolean;
+}
+
+const UP: V3 = { x: 0, y: 1, z: 0 };
+const IMPACT_WINDOW = 4; // steps: impacts are judged over 1/60 s, the prototype's nominal frame
+
+export class ShakeTableSim {
+  readonly drive = new TableDrive();
+  type: BuildingType;
+  world!: RAPIER_NS.World;
+  bodies: BodyRec[] = [];
+  springs: Spring[] = [];
+  /** Slab bodies bottom to top (base slab first when isolated). */
+  levels: BodyRec[] = [];
+  table!: BodyRec;
+  simT = 0;
+  steps = 0;
+  generation = 0; // increments on every reset, so views know to rebuild
+  readonly events: SimEvent[] = [];
+  failNote = '';
+  peakRoof = 0; // m
+  peakF = 0; // Hz
+
+  private readonly R: Rapier;
+  private readonly seed: number;
+  private readonly useModelSizes: boolean;
+  private rand!: Rng; // physics stream
+  private visual!: Rng; // visual-only stream (texture offsets)
+
+  constructor(R: Rapier, opts: SimOptions = {}) {
+    this.R = R;
+    this.type = opts.type ?? 'bare';
+    this.seed = opts.seed ?? 1;
+    this.useModelSizes = opts.useModelSizes ?? true;
+    this.reset(this.type);
+  }
+
+  get anyFailed(): boolean {
+    return this.springs.some((s) => s.failed);
+  }
+
+  /** Rebuilds the world for a building type (prototype `setType` and `resetWorld`). */
+  reset(type: BuildingType = this.type): void {
+    this.type = type;
+    this.generation++;
+    if (this.world) this.world.free();
+    const R = this.R;
+    this.world = new R.World({ x: 0, y: -9.81, z: 0 });
+    this.world.timestep = DT;
+    this.world.integrationParameters.numSolverIterations = 8;
+    this.bodies = []; this.springs = []; this.levels = [];
+    this.events.length = 0;
+    this.simT = 0; this.steps = 0;
+    this.failNote = ''; this.peakRoof = 0; this.peakF = 0;
+    this.drive.reset();
+    this.rand = lcg(this.seed * 7919 + 17);
+    this.visual = lcg(this.seed * 104729 + 3);
+
+    const ground = this.world.createRigidBody(R.RigidBodyDesc.fixed());
+    this.world.createCollider(R.ColliderDesc.cuboid(80, 0.5, 80).setTranslation(0, -0.5, 0).setFriction(0.7), ground);
+    for (const [x, y, z, hx, hy, hz] of RIM) this.world.createCollider(R.ColliderDesc.cuboid(hx, hy, hz).setTranslation(x, y, z).setFriction(0.7), ground);
+
+    const tb = this.world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, TOP - 0.15, 0));
+    this.world.createCollider(R.ColliderDesc.cuboid(TX, 0.15, TZ).setFriction(0.8), tb);
+    this.table = this.register(tb, 1e9, 'table', { type: 'table' });
+
+    this.buildTower();
+    this.buildWall();
+    this.buildFurniture();
+  }
+
+  setMode(mode: ShakeMode): void {
+    this.drive.mode = mode;
+    if (this.drive.on) this.drive.stop();
+  }
+
+  start(): void {
+    this.failNote = ''; this.peakRoof = 0; this.peakF = 0;
+    this.drive.start();
+    for (const o of this.bodies) if (o.kind !== 'table') o.body.wakeUp();
+  }
+
+  stop(): void {
+    this.drive.stop();
+  }
+
+  /** One physics step of DT seconds (prototype `physStep`, plus per-step bookkeeping). */
+  step(): void {
+    const x = this.drive.step();
+    this.table.body.setNextKinematicTranslation({ x, y: TOP - 0.15, z: 0 });
+    this.applySprings();
+    this.world.step();
+    this.simT += DT;
+    this.steps++;
+    if (this.steps % IMPACT_WINDOW === 0) this.detectImpacts(IMPACT_WINDOW * DT);
+    if (this.drive.active && !this.anyFailed) {
+      const roof = Math.abs(this.roofSwing());
+      if (roof > this.peakRoof) { this.peakRoof = roof; this.peakF = this.drive.fNow; }
+    }
+  }
+
+  /** Roof displacement relative to the table, m (prototype `roofSwing`). */
+  roofSwing(): number {
+    const top = this.levels[this.levels.length - 1];
+    if (!top) return 0;
+    return top.body.translation().x - this.table.body.translation().x - X0;
+  }
+
+  /** First natural frequency of the current (damaged) building, Hz, or 0 after a failure. */
+  natBeat(): number {
+    if (this.anyFailed) return 0;
+    const ks = this.springs.map((s) => s.k * (1 - 0.3 * s.damage));
+    return shearBuildingFrequencies(ks.map(() => M), ks)[0] ?? 0;
+  }
+
+  /** World-space ends of a member of a spring, for drawing and for failure pieces. */
+  memberEnds(s: Spring, m: Member, a: V3 = { x: 0, y: 0, z: 0 }, b: V3 = { x: 0, y: 0, z: 0 }): [V3, V3] {
+    const pa = s.a.body.translation(), pb = s.b.body.translation();
+    rotate(m.la, s.a.body.rotation(), a); a.x += pa.x; a.y += pa.y; a.z += pa.z;
+    rotate(m.lb, s.b.body.rotation(), b); b.x += pb.x; b.y += pb.y; b.z += pb.z;
+    return [a, b];
+  }
+
+  // ---------------------------------------------------------------- building
+
+  private register(body: RigidBody, mass: number, kind: BodyKind, shape: BodyShape): BodyRec {
+    const o: BodyRec = { id: this.bodies.length, body, mass, kind, shape, pv: { x: 0, y: 0, z: 0 }, cool: 0 };
+    this.bodies.push(o);
+    return o;
+  }
+
+  private dynBody(x: number, y: number, z: number, q: Q4 | null, sleep: boolean): RigidBody {
+    const d = this.R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setCanSleep(sleep).setAngularDamping(0.15).setLinearDamping(0.02);
+    if (q) d.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
+    return this.world.createRigidBody(d);
+  }
+
+  private addSlab(y: number): BodyRec {
+    const b = this.dynBody(X0, y, 0, null, false);
+    this.world.createCollider(this.R.ColliderDesc.cuboid(HALF, ST / 2, HALF).setDensity(M / (HALF * 2 * ST * HALF * 2)).setFriction(0.7), b);
+    const o = this.register(b, M, 'slab', { type: 'slab' });
+    this.levels.push(o);
+    return o;
+  }
+
+  private makeSpring(a: BodyRec, b: BodyRec, rest: V3, k: number, zeta: number, mass: number, opts: Partial<Spring> & { label: string }): Spring {
+    const s: Spring = {
+      index: this.springs.length, a, b, aDyn: a !== this.table, rest, k, c: 2 * zeta * Math.sqrt(k * mass),
+      kv: KV, cv: CV, kr: KR, cr: CR, iso: false, yieldR: 0, ultR: Infinity,
+      damage: 0, failed: false, r: 0, d: 0, members: [], ...opts,
+    };
+    this.springs.push(s);
+    return s;
+  }
+
+  private buildTower(): void {
+    const T = BUILDINGS[this.type];
+    let lower = this.table, lowerTopY = TOP, lowerHalf = 0.15, lx = X0;
+    if (T.iso) {
+      const yb = TOP + ISO_H + ST / 2;
+      const base = this.addSlab(yb);
+      const s = this.makeSpring(this.table, base, { x: X0, y: 0.15 + ISO_H + ST / 2, z: 0 }, T.kIso!, T.zIso!, M * (NS + 1), { iso: true, label: 'Isolators' });
+      for (const cx of [-1.1, 1.1]) for (const cz of [-1.1, 1.1]) s.members.push({ la: { x: X0 + cx, y: 0.15, z: cz }, lb: { x: cx, y: -ST / 2, z: cz }, kind: 'bear' });
+      lower = base; lowerTopY = yb + ST / 2; lowerHalf = ST / 2; lx = 0;
+    }
+    let prevCenter = lower === this.table ? TOP - 0.15 : lowerTopY - ST / 2;
+    for (let i = 0; i < NS; i++) {
+      const lh = i === 0 ? lowerHalf : ST / 2;
+      const y = prevCenter + lh + CH + ST / 2;
+      const slab = this.addSlab(y);
+      const rest = { x: i === 0 ? lx : 0, y: y - prevCenter, z: 0 };
+      const s = this.makeSpring(lower, slab, rest, T.k, T.zeta, M, { label: `Story ${i + 1}`, yieldR: T.yieldR, ultR: T.ultR });
+      const C = HALF - 0.15;
+      for (const cx of [-C, C]) for (const cz of [-C, C]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -ST / 2, z: cz }, kind: 'col' });
+      if (T.braced) for (const cz of [-C, C]) {
+        s.members.push({ la: { x: rest.x - C, y: lh, z: cz }, lb: { x: C, y: -ST / 2, z: cz }, kind: 'brace' });
+        s.members.push({ la: { x: rest.x + C, y: lh, z: cz }, lb: { x: -C, y: -ST / 2, z: cz }, kind: 'brace' });
+      }
+      lower = slab; prevCenter = y;
+    }
+  }
+
+  /** Unreinforced block wall on the +x side of the table (prototype `buildWall`). */
+  private buildWall(): void {
+    const WX = 2.4, bl = 0.4, bh = 0.2, bt = 0.18;
+    for (let c = 0; c < 11; c++) {
+      const y = TOP + bh / 2 + c * bh + 0.001 * c;
+      const pieces: [number, number][] = c % 2 === 0
+        ? [-1.0, -0.6, -0.2, 0.2, 0.6, 1.0].map((z) => [z, bl])
+        : [[-1.1, 0.2], [-0.8, bl], [-0.4, bl], [0, bl], [0.4, bl], [0.8, bl], [1.1, 0.2]];
+      for (const [z, len] of pieces) {
+        const uv: [number, number] = [this.visual(), this.visual()];
+        const b = this.dynBody(WX, y, z, null, true);
+        this.world.createCollider(this.R.ColliderDesc.cuboid(bt / 2, bh / 2 - 0.001, (len - 0.016) / 2).setMass(26 * len).setFriction(0.7).setRestitution(0.02), b);
+        this.register(b, 26 * len, 'block', { type: 'block', w: bt, h: bh - 0.014, d: len - 0.016, tint: Math.abs(c * 7 + Math.round(z * 10)) % 3, uv });
+      }
+    }
+  }
+
+  private addProp(id: PropId, x: number, yBottom: number, z: number, ry: number, mass: number): number {
+    const size = propSize(id, this.useModelSizes);
+    const b = this.dynBody(x, yBottom + size.y / 2 + 0.005, z, qyaw(ry), false);
+    this.world.createCollider(this.R.ColliderDesc.cuboid((size.x / 2) * 0.97, size.y / 2, (size.z / 2) * 0.97).setMass(mass).setFriction(0.45).setRestitution(0.05), b);
+    this.register(b, mass, 'prop', { type: 'prop', prop: id, size });
+    return yBottom + size.y;
+  }
+
+  /** Furniture inside the building and loose props on the table (prototype `buildFurniture`). */
+  private buildFurniture(): void {
+    const f1 = BUILDINGS[this.type].iso ? TOP + ISO_H + ST : TOP;
+    const fl = (n: number): number => f1 + n * STORY;
+    const X = X0;
+    const deskTop = this.addProp('metal_office_desk', X + 0.35, f1, -0.75, 0, 35);
+    this.addProp('cardboard_box_01', X + 0.55, deskTop, -0.75, 0.3, 6);
+    this.addProp('plastic_monobloc_chair_01', X + 0.3, f1, 0.15, Math.PI, 5);
+    const c1 = this.addProp('wooden_crate_01', X + 0.65, fl(1), -0.7, 0.2, 18);
+    this.addProp('wooden_crate_01', X + 0.62, c1, -0.72, -0.15, 18);
+    this.addProp('plastic_crate_01', X - 0.55, fl(1), -0.85, 0.1, 3);
+    this.addProp('plastic_monobloc_chair_01', X + 0.1, fl(1), 0.65, 2.4, 5);
+    let s = fl(2);
+    for (let i = 0; i < 3; i++) s = this.addProp('cardboard_box_01', X + 0.7 + (i % 2) * 0.03, s, 0.6, 0.2 * i, 6);
+    this.addProp('metal_office_desk', X - 0.2, fl(2), -0.75, 0, 35);
+    this.addProp('wooden_crate_01', 2.9, TOP, 2.2, 0.4, 18);
+    this.addProp('plastic_crate_01', 2.95, TOP, -2.2, -0.3, 3);
+  }
+
+  // ---------------------------------------------------------------- springs
+
+  /** The shear-building model: story springs applied as impulses before each step (prototype `applySprings`). */
+  private applySprings(): void {
+    for (const s of this.springs) {
+      if (s.failed) continue;
+      const A = s.a.body, B = s.b.body;
+      const pa = A.translation(), pb = B.translation();
+      const qa = A.rotation(), qb = B.rotation();
+      const rv = rotate(s.rest, qa);
+      const dx = pb.x - pa.x - rv.x, dy = pb.y - pa.y - rv.y, dz = pb.z - pa.z - rv.z;
+      const va = A.linvel(), vb = B.linvel();
+      const kf = s.k * (1 - 0.3 * s.damage);
+      let fx = -kf * dx - s.c * (vb.x - va.x), fz = -kf * dz - s.c * (vb.z - va.z);
+      const fy = -s.kv * dy - s.cv * (vb.y - va.y);
+      const d = Math.hypot(dx, dz);
+      s.d = d; s.r = d / CH;
+      if (s.iso && d > ISO_LIMIT) {
+        const e = d - ISO_LIMIT;
+        fx -= (s.k * 60 * e * dx) / d; fz -= (s.k * 60 * e * dz) / d;
+      }
+      B.applyImpulse({ x: fx * DT, y: fy * DT, z: fz * DT }, true);
+      if (s.aDyn) A.applyImpulse({ x: -fx * DT, y: -fy * DT, z: -fz * DT }, true);
+      const qr = qmul(qb, qinv(qa));
+      if (qr.w < 0) { qr.x = -qr.x; qr.y = -qr.y; qr.z = -qr.z; qr.w = -qr.w; }
+      const sn = Math.hypot(qr.x, qr.y, qr.z);
+      const ang = 2 * Math.atan2(sn, qr.w);
+      const f = sn > 1e-9 ? ang / sn : 2;
+      const wa = A.angvel(), wb = B.angvel();
+      const tx = -s.kr * qr.x * f - s.cr * (wb.x - wa.x);
+      const ty = -s.kr * qr.y * f - s.cr * (wb.y - wa.y);
+      const tz = -s.kr * qr.z * f - s.cr * (wb.z - wa.z);
+      B.applyTorqueImpulse({ x: tx * DT, y: ty * DT, z: tz * DT }, true);
+      if (s.aDyn) A.applyTorqueImpulse({ x: -tx * DT, y: -ty * DT, z: -tz * DT }, true);
+      if (!s.iso) {
+        if (s.r > s.yieldR) {
+          if (s.damage === 0) this.emit({ kind: 'crack', t: this.simT, p: 0.5, pos: this.memberMid(s) });
+          s.damage = Math.min(1, s.damage + ((s.r - s.yieldR) / (s.ultR - s.yieldR)) * DT * 1.6);
+        }
+        if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);
+      }
+    }
+  }
+
+  private memberMid(s: Spring): Vec3 {
+    const p = s.b.body.translation();
+    return [p.x, p.y - 1, p.z];
+  }
+
+  /** A story gives way: members become Rapier pieces, concrete chunks fall (prototype `failStory`). */
+  private failStory(s: Spring, dx: number, dz: number): void {
+    const R = this.R, rand = this.rand;
+    s.failed = true;
+    if (!this.failNote) {
+      this.failNote = this.drive.mode === 'quake'
+        ? `${s.label} failed ${this.drive.t.toFixed(1)} s into the quake`
+        : `${s.label} failed at ${this.drive.fNow.toFixed(2)} Hz`;
+    }
+    const va = s.a.body.linvel(), vb = s.b.body.linvel();
+    const vel = { x: (va.x + vb.x) / 2, y: (va.y + vb.y) / 2, z: (va.z + vb.z) / 2 };
+    const dl = Math.hypot(dx, dz) || 1;
+    const dir = { x: dx / dl, z: dz / dl };
+    const story = s.index;
+    for (const m of s.members) {
+      const [a, b] = this.memberEnds(s, m);
+      const L = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+      const axis = { x: (b.x - a.x) / L, y: (b.y - a.y) / L, z: (b.z - a.z) / L };
+      const q = fromUnitVectors(UP, axis);
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
+      const isCol = m.kind === 'col';
+      const parts = isCol ? 2 : 1, w = isCol ? 0.2 : 0.07;
+      for (let p = 0; p < parts; p++) {
+        const off = parts === 2 ? (p === 0 ? -L / 4 : L / 4) : 0, len = L / parts;
+        const body = this.dynBody(mid.x + axis.x * off, mid.y + axis.y * off, mid.z + axis.z * off, q, true);
+        this.world.createCollider(R.ColliderDesc.cuboid(w / 2, len / 2, w / 2).setMass(isCol ? 90 : 30).setFriction(0.6), body);
+        const kick = (p === 0 ? 1 : -1) * 1.8;
+        body.setLinvel({ x: vel.x + dir.x * kick + (rand() - 0.5), y: vel.y, z: vel.z + dir.z * kick + (rand() - 0.5) }, true);
+        body.setAngvel({ x: (rand() - 0.5) * 5, y: (rand() - 0.5) * 2, z: (rand() - 0.5) * 5 }, true);
+        this.register(body, 90, 'piece', { type: 'member-piece', member: isCol ? 'col' : 'brace', len, story });
+      }
+    }
+    const p = s.b.body.translation();
+    for (let i = 0; i < 14; i++) {
+      const sz = 0.08 + rand() * 0.16;
+      const uv: [number, number] = [this.visual(), this.visual()];
+      const ex = (rand() < 0.5 ? -1 : 1) * HALF * (0.6 + rand() * 0.45), ez = (rand() - 0.5) * HALF * 2;
+      const body = this.dynBody(p.x + ex, p.y - 0.2, p.z + ez, null, true);
+      this.world.createCollider(R.ColliderDesc.cuboid(sz / 2, sz * 0.35, sz * 0.6).setMass(4).setFriction(0.6).setRestitution(0.2), body);
+      body.setLinvel({ x: vel.x + (rand() - 0.5) * 3, y: rand() * 2, z: vel.z + (rand() - 0.5) * 3 }, true);
+      this.register(body, 4, 'piece', { type: 'chunk', size: sz, uv });
+    }
+    s.b.body.applyTorqueImpulse({ x: (rand() - 0.5) * 3000, y: 0, z: (rand() - 0.5) * 3000 }, true);
+    this.emit({ kind: 'fail', t: this.simT, p: 1, story: s.label, pos: [p.x, p.y - 0.8, p.z] });
+  }
+
+  // ---------------------------------------------------------------- events
+
+  /**
+   * Impacts from sudden velocity changes (the prototype's test), judged over a fixed window
+   * of simulated time instead of per rendered frame, so every device hears the same thing.
+   */
+  private detectImpacts(window: number): void {
+    for (const o of this.bodies) {
+      if (o.kind === 'table') continue;
+      const v = o.body.linvel();
+      const dv = Math.hypot(v.x - o.pv.x, v.y - o.pv.y, v.z - o.pv.z);
+      o.pv.x = v.x; o.pv.y = v.y; o.pv.z = v.z;
+      o.cool -= window;
+      if (dv > 1.6 && o.cool <= 0) {
+        const J = o.mass * dv;
+        if (J < 25) continue;
+        o.cool = 0.3;
+        const t = o.body.translation();
+        this.emit({ kind: 'impact', t: this.simT, p: Math.min(1, J / (o.kind === 'slab' ? 20000 : 600)), heavy: o.kind === 'slab' || J > 2000, pos: [t.x, t.y, t.z] });
+      }
+    }
+  }
+
+  private emit(e: SimEvent): void {
+    this.events.push(e);
+  }
+}

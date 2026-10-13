@@ -1,0 +1,27 @@
+{
+  "note": "Poly Haven assets the lab uses. Edit this, then run npm run assets:sync.",
+  "hdris": [
+    { "id": "aircraft_workshop_01", "key": "aircraft", "label": "Test workshop", "res": "2k", "groundHeight": 3.2 },
+    { "id": "hangar_interior", "key": "hangar", "label": "Hangar", "res": "2k", "groundHeight": 3.2 },
+    { "id": "industrial_workshop_foundry", "key": "foundry", "label": "Foundry hall", "res": "2k", "groundHeight": 3.2 }
+  ],
+  "textures": [
+    { "id": "brushed_concrete", "res": "1k" },
+    { "id": "concrete_floor_worn_001", "res": "1k" },
+    { "id": "metal_plate", "res": "1k" },
+    { "id": "blue_metal_plate", "res": "1k" },
+    { "id": "concrete_floor_02", "res": "1k" }
+  ],
+  "models": [
+    { "id": "metal_office_desk", "res": "1k", "physical": true },
+    { "id": "plastic_monobloc_chair_01", "res": "1k", "physical": true },
+    { "id": "cardboard_box_01", "res": "1k", "physical": true },
+    { "id": "wooden_crate_01", "res": "1k", "physical": true },
+    { "id": "plastic_crate_01", "res": "1k", "physical": true },
+    { "id": "tool_cart", "res": "1k" },
+    { "id": "portable_searchlight", "res": "1k" },
+    { "id": "korean_fire_extinguisher_01", "res": "1k" },
+    { "id": "industrial_storage_cart", "res": "1k" },
+    { "id": "metal_toolbox", "res": "1k" }
+  ]
+}
