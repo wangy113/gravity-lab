@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import type { Tier, TierChoice } from '../../core/render/quality.ts';
 import type { BuildingType } from '../constants.ts';
 import type { ShakeMode } from '../motion/table.ts';
 import { loadNotebook, type Notebook } from '../notebook.ts';
@@ -16,6 +17,8 @@ export const ui = {
   cam: signal<CameraMode>('orbit'),
   stress: signal(true),
   drama: signal(true),
+  quality: signal<TierChoice>('auto'),
+  tier: signal<Tier>('medium'),
   slow: signal(false),
   sound: signal(true),
   hall: signal('aircraft'),

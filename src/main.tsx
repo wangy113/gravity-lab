@@ -8,6 +8,7 @@ import './styles.css';
 import RAPIER from '@dimforge/rapier3d-deterministic-compat';
 import { render } from 'preact';
 import { loadManifest } from './core/assets/manifest.ts';
+import { guessTier, savedChoice } from './core/render/quality.ts';
 import { Controller } from './shake-table/controller.ts';
 import { Lab } from './shake-table/lab.ts';
 import { LabView } from './shake-table/scene/view.ts';
@@ -22,6 +23,11 @@ async function boot(): Promise<void> {
   const ctl = new Controller(lab, view);
   render(<App ctl={ctl} />, document.querySelector('#app')!);
 
+  // Quality tier before loading, so the hall loads at the right resolution.
+  const choice = savedChoice();
+  ui.quality.value = choice;
+  ui.tier.value = choice === 'auto' ? guessTier() : choice;
+  await view.applyTier(ui.tier.value, false);
   ui.loadMsg.value = 'Loading the lab hall';
   const manifest = await loadManifest();
   ui.credits.value = manifest?.credits ?? [];
@@ -39,6 +45,7 @@ async function boot(): Promise<void> {
   ctl.setG(ui.g.value);
   ctl.setType('bare');
   ui.loading.value = false;
+  if (choice === 'auto') ctl.startFrameWatch();
 
   addEventListener('resize', () => view.resize());
   // Read the hash before showStop() rewrites it.

@@ -7,7 +7,8 @@ async function skipDrawing(page: Page): Promise<void> {
 
 async function boot(page: Page, hash = ''): Promise<string[]> {
   const external: string[] = [];
-  page.on('request', (r) => { if (!r.url().startsWith('http://localhost:4173')) external.push(r.url()); });
+  // blob: and data: URLs are in-memory (textures inside .glb files), not network requests.
+  page.on('request', (r) => { const u = r.url(); if (/^https?:/.test(u) && !u.startsWith('http://localhost:4173')) external.push(u); });
   await page.goto(`/?test${hash}`);
   await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
   return external;

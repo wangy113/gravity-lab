@@ -36,6 +36,15 @@ export class Lab {
   private readonly scratch = new PoseBuffer();
   private scratchSprings = new Float32Array(0);
   private stepCount = 0;
+  /** Whether any body moved during the last frame, so the view can skip redrawing a still scene. */
+  moved = true;
+
+  private posesDiffer(): boolean {
+    const a = this.prev.data, b = this.curr.data;
+    if (this.prev.count !== this.curr.count) return true;
+    for (let i = 0, n = this.curr.count * 7; i < n; i++) if (Math.abs(a[i]! - b[i]!) > 1e-6) return true;
+    return false;
+  }
   private replayAlpha = 0;
 
   constructor(R: typeof RAPIER_NS, type: BuildingType = 'bare') {
@@ -116,8 +125,10 @@ export class Lab {
   frame(realSeconds: number): void {
     if (this.replay.on) return this.replayFrame(realSeconds);
     const n = this.host.advance(realSeconds);
+    this.moved = false;
     if (n > 0) {
       readPoses(this.sim, this.curr);
+      this.moved = this.posesDiffer();
       this.readSprings(this.springState);
     }
     if (this.sim.events.length) {

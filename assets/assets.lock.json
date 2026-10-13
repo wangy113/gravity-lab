@@ -16,6 +16,12 @@
           "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/aircraft_workshop_01_2k.hdr",
           "md5": "718023aa8411cf205d83b2b91c8c5993",
           "size": 6907231
+        },
+        {
+          "path": "hdri/aircraft_workshop_01_1k.hdr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/aircraft_workshop_01_1k.hdr",
+          "md5": "a50268d898067babd9f45aae44cdf73f",
+          "size": 1771415
         }
       ]
     },
@@ -35,6 +41,12 @@
           "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/hangar_interior_2k.hdr",
           "md5": "32d5499a202cf48c3b2be4cd785484d0",
           "size": 6939075
+        },
+        {
+          "path": "hdri/hangar_interior_1k.hdr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/hangar_interior_1k.hdr",
+          "md5": "11bde1787d58db3768cb8a5a4dd806ff",
+          "size": 1755683
         }
       ]
     },
@@ -54,6 +66,12 @@
           "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/industrial_workshop_foundry_2k.hdr",
           "md5": "b32ccf18584d284cead88d36ec617c8c",
           "size": 6636267
+        },
+        {
+          "path": "hdri/industrial_workshop_foundry_1k.hdr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/industrial_workshop_foundry_1k.hdr",
+          "md5": "d65e13e0b4aff7fd0a2fa32a7c0fd4e3",
+          "size": 1701301
         }
       ]
     },

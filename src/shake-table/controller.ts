@@ -4,6 +4,7 @@
  */
 import { Synth } from '../core/audio/synth.ts';
 import type { BuildingType } from './constants.ts';
+import { guessTier, lowerTier, saveChoice, TIERS, type TierChoice } from '../core/render/quality.ts';
 import { BUILDINGS } from './constants.ts';
 import { CHART_SECONDS, type Lab } from './lab.ts';
 import { downloadReport, emptyNotebook, saveNotebook, type Notebook, type RunResult } from './notebook.ts';
@@ -19,6 +20,9 @@ export class Controller {
   private last = performance.now();
   private uiT = 0;
   private peakAcc = 0;
+  private lastDraw = 0;
+  /** Auto quality: frame times sampled for a few seconds after loading. */
+  private fps = { from: 0, frames: 0, done: true };
   private pendingStart: ReturnType<typeof setTimeout> | undefined;
   /** The run in progress: which guided test it belongs to, and what it has measured so far. */
   private run: { stop: number | null; natBeat: number; peakTableG: number; failT: number | null; ended: number | null } | null = null;
@@ -108,6 +112,7 @@ export class Controller {
   setStress(on: boolean): void {
     ui.stress.value = on;
     this.view.stress = on;
+    this.view.dirty = true;
   }
 
   setSound(on: boolean): void {
@@ -197,6 +202,36 @@ export class Controller {
       else this.pendingStart = setTimeout(wait, 50);
     };
     this.pendingStart = setTimeout(wait, 50);
+  }
+
+  /** Quality choice from Help: a fixed tier, or auto (guess, then step down if frames are slow). */
+  async setQuality(choice: TierChoice): Promise<void> {
+    ui.quality.value = choice;
+    saveChoice(choice);
+    const tier = choice === 'auto' ? guessTier() : choice;
+    ui.tier.value = tier;
+    await this.view.applyTier(tier);
+    if (choice === 'auto') this.startFrameWatch();
+  }
+
+  startFrameWatch(): void {
+    this.fps = { from: performance.now() + 1500, frames: 0, done: false }; // skip the first frames after a change
+  }
+
+  private watchFrameRate(now: number): void {
+    const f = this.fps;
+    if (f.done || now < f.from) return;
+    f.frames++;
+    const span = now - f.from;
+    if (span < 4000) return;
+    f.done = true;
+    const avgMs = span / f.frames;
+    const lower = lowerTier(ui.tier.value);
+    if (avgMs > 40 && lower && ui.quality.value === 'auto') {
+      ui.tier.value = lower;
+      void this.view.applyTier(lower).then(() => this.startFrameWatch());
+      toast(`Switched to ${TIERS[lower].label} quality for smoother motion`, 3000);
+    }
   }
 
   setDrama(on: boolean): void {
@@ -377,7 +412,13 @@ export class Controller {
     view.updateBeacon(!lab.replay.on && (d.on || d.env > 0.01), lab.sim.simT);
     this.trackRun();
     if (now - this.uiT > 100) { this.uiT = now; this.uiTick(); }
-    view.render();
+    // Redraw only when something can have changed. A still scene is redrawn twice a second,
+    // which saves battery and keeps headless browsers delivering frames.
+    const live = d.on || d.env > 0;
+    const draw = view.dirty || lab.moved || lab.replay.on || live || view.dustActive || view.shaking || view.camMode === 'ride' || now - this.lastDraw > 500;
+    if (draw) this.lastDraw = now;
+    view.finishFrame(draw);
+    this.watchFrameRate(now);
   }
 
   private uiTick(): void {

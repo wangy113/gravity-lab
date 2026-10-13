@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import { describeResult } from '../notebook.ts';
 import { OBJECTIVES, POE, POE_STEPS } from '../pedagogy.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
-import { Dialog, type Ctl } from './app.tsx';
+import { TIERS } from '../../core/render/quality.ts';
+import { Dialog, Seg, type Ctl } from './app.tsx';
 import { ui } from './store.ts';
 
 // ------------------------------------------------------------------ guided lab
@@ -240,6 +241,9 @@ export function HelpDialog({ ctl }: Ctl) {
       <h2>Keyboard shortcuts</h2>
       <table class="runs keys"><tbody>{SHORTCUTS.map(([k, v]) => <tr><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}</tbody></table>
       <h2>Settings</h2>
+      <div class="lbl">Graphics quality (physics is the same at every level)</div>
+      <Seg id="segQuality" label="Graphics quality" value={ui.quality.value} onPick={(v) => void ctl.setQuality(v)}
+        options={[['auto', `Auto (${TIERS[ui.tier.value].label})`], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']]} />
       <div class="row">
         <button type="button" class="btn" id="dramaBtn" aria-pressed={ui.drama.value} onClick={() => ctl.setDrama(!ui.drama.value)}>Dramatic effects {ui.drama.value ? 'on' : 'off'}</button>
         <button type="button" class="btn" aria-pressed={ui.sound.value} onClick={() => ctl.setSound(!ui.sound.value)}>Sound {ui.sound.value ? 'on' : 'off'}</button>

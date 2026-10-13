@@ -1,0 +1,280 @@
+{
+  "hdris": [
+    {
+      "key": "aircraft",
+      "id": "aircraft_workshop_01",
+      "label": "Test workshop",
+      "file": "hdri/aircraft_workshop_01_2k.hdr",
+      "fileLow": "hdri/aircraft_workshop_01_1k.hdr",
+      "groundHeight": 3.2,
+      "sun": [
+        -0.3047,
+        0.68164,
+        -0.66523
+      ],
+      "floorTint": [
+        0.96394,
+        1,
+        0.9542
+      ]
+    },
+    {
+      "key": "hangar",
+      "id": "hangar_interior",
+      "label": "Hangar",
+      "file": "hdri/hangar_interior_2k.hdr",
+      "fileLow": "hdri/hangar_interior_1k.hdr",
+      "groundHeight": 3.2,
+      "sun": [
+        0.51713,
+        0.76517,
+        -0.38353
+      ],
+      "floorTint": [
+        0.98472,
+        1,
+        0.99295
+      ]
+    },
+    {
+      "key": "foundry",
+      "id": "industrial_workshop_foundry",
+      "label": "Foundry hall",
+      "file": "hdri/industrial_workshop_foundry_2k.hdr",
+      "fileLow": "hdri/industrial_workshop_foundry_1k.hdr",
+      "groundHeight": 3.2,
+      "sun": [
+        -0.31952,
+        0.89867,
+        0.30049
+      ],
+      "floorTint": [
+        1,
+        0.90581,
+        0.58781
+      ]
+    }
+  ],
+  "textures": {
+    "brushed_concrete": {
+      "diffuse": "textures/brushed_concrete/diffuse.webp",
+      "normal": "textures/brushed_concrete/normal.webp",
+      "arm": "textures/brushed_concrete/arm.webp"
+    },
+    "concrete_floor_worn_001": {
+      "diffuse": "textures/concrete_floor_worn_001/diffuse.webp",
+      "normal": "textures/concrete_floor_worn_001/normal.webp",
+      "arm": "textures/concrete_floor_worn_001/arm.webp"
+    },
+    "metal_plate": {
+      "diffuse": "textures/metal_plate/diffuse.webp",
+      "normal": "textures/metal_plate/normal.webp",
+      "arm": "textures/metal_plate/arm.webp"
+    },
+    "blue_metal_plate": {
+      "diffuse": "textures/blue_metal_plate/diffuse.webp",
+      "normal": "textures/blue_metal_plate/normal.webp",
+      "arm": "textures/blue_metal_plate/arm.webp"
+    },
+    "concrete_floor_02": {
+      "diffuse": "textures/concrete_floor_02/diffuse.webp",
+      "normal": "textures/concrete_floor_02/normal.webp",
+      "arm": "textures/concrete_floor_02/arm.webp"
+    }
+  },
+  "models": {
+    "metal_office_desk": "models/metal_office_desk.glb",
+    "plastic_monobloc_chair_01": "models/plastic_monobloc_chair_01.glb",
+    "cardboard_box_01": "models/cardboard_box_01.glb",
+    "wooden_crate_01": "models/wooden_crate_01.glb",
+    "plastic_crate_01": "models/plastic_crate_01.glb",
+    "tool_cart": "models/tool_cart.glb",
+    "portable_searchlight": "models/portable_searchlight.glb",
+    "korean_fire_extinguisher_01": "models/korean_fire_extinguisher_01.glb",
+    "industrial_storage_cart": "models/industrial_storage_cart.glb",
+    "metal_toolbox": "models/metal_toolbox.glb"
+  },
+  "credits": [
+    {
+      "id": "aircraft_workshop_01",
+      "name": "Aircraft Workshop 01",
+      "type": "hdri",
+      "authors": [
+        "Oliksiy Yakovlyev"
+      ]
+    },
+    {
+      "id": "hangar_interior",
+      "name": "Hangar Interior",
+      "type": "hdri",
+      "authors": [
+        "Dimitrios Savva",
+        "Jarod Guest"
+      ]
+    },
+    {
+      "id": "industrial_workshop_foundry",
+      "name": "Industrial Workshop Foundry",
+      "type": "hdri",
+      "authors": [
+        "Dimitrios Savva",
+        "Jarod Guest"
+      ]
+    },
+    {
+      "id": "brushed_concrete",
+      "name": "Brushed Concrete ",
+      "type": "texture",
+      "authors": [
+        "Dario Barresi",
+        "Dimitrios Savva"
+      ]
+    },
+    {
+      "id": "concrete_floor_worn_001",
+      "name": "Concrete Floor Worn 001",
+      "type": "texture",
+      "authors": [
+        "Dimitrios Savva",
+        "Rico Cilliers"
+      ]
+    },
+    {
+      "id": "metal_plate",
+      "name": "Metal Plate",
+      "type": "texture",
+      "authors": [
+        "Rob Tuytel"
+      ]
+    },
+    {
+      "id": "blue_metal_plate",
+      "name": "Blue Metal Plate",
+      "type": "texture",
+      "authors": [
+        "Rob Tuytel"
+      ]
+    },
+    {
+      "id": "concrete_floor_02",
+      "name": "Concrete Floor 02",
+      "type": "texture",
+      "authors": [
+        "Rob Tuytel"
+      ]
+    },
+    {
+      "id": "metal_office_desk",
+      "name": "Metal Office Desk",
+      "type": "model",
+      "authors": [
+        "Ulan Cabanilla"
+      ]
+    },
+    {
+      "id": "plastic_monobloc_chair_01",
+      "name": "Plastic Monobloc Chair 01",
+      "type": "model",
+      "authors": [
+        "Kuutti Siitonen"
+      ]
+    },
+    {
+      "id": "cardboard_box_01",
+      "name": "Cardboard Box 01",
+      "type": "model",
+      "authors": [
+        "Rahul Chaudhary"
+      ]
+    },
+    {
+      "id": "wooden_crate_01",
+      "name": "Wooden Crate 01",
+      "type": "model",
+      "authors": [
+        "James Ray Cock"
+      ]
+    },
+    {
+      "id": "plastic_crate_01",
+      "name": "Plastic Crate 01",
+      "type": "model",
+      "authors": [
+        "PierreB3D"
+      ]
+    },
+    {
+      "id": "tool_cart",
+      "name": "Tool Cart",
+      "type": "model",
+      "authors": [
+        "Savva Zakharov"
+      ]
+    },
+    {
+      "id": "portable_searchlight",
+      "name": "Portable Searchlight",
+      "type": "model",
+      "authors": [
+        "Elijah Cragg"
+      ]
+    },
+    {
+      "id": "korean_fire_extinguisher_01",
+      "name": "Korean Fire Extinguisher 01",
+      "type": "model",
+      "authors": [
+        "UM JOORIN"
+      ]
+    },
+    {
+      "id": "industrial_storage_cart",
+      "name": "Industrial Storage Cart",
+      "type": "model",
+      "authors": [
+        "Jule Bielitz"
+      ]
+    },
+    {
+      "id": "metal_toolbox",
+      "name": "Metal Toolbox",
+      "type": "model",
+      "authors": [
+        "Mateusz Sadek"
+      ]
+    }
+  ],
+  "sizes": {
+    "hdri/aircraft_workshop_01_2k.hdr": 6907231,
+    "hdri/aircraft_workshop_01_1k.hdr": 1771415,
+    "hdri/hangar_interior_2k.hdr": 6939075,
+    "hdri/hangar_interior_1k.hdr": 1755683,
+    "hdri/industrial_workshop_foundry_2k.hdr": 6636267,
+    "hdri/industrial_workshop_foundry_1k.hdr": 1701301,
+    "textures/brushed_concrete/diffuse.webp": 190250,
+    "textures/brushed_concrete/normal.webp": 251512,
+    "textures/brushed_concrete/arm.webp": 98454,
+    "textures/concrete_floor_worn_001/diffuse.webp": 36172,
+    "textures/concrete_floor_worn_001/normal.webp": 87160,
+    "textures/concrete_floor_worn_001/arm.webp": 80536,
+    "textures/metal_plate/diffuse.webp": 78142,
+    "textures/metal_plate/normal.webp": 181672,
+    "textures/metal_plate/arm.webp": 225262,
+    "textures/blue_metal_plate/diffuse.webp": 19496,
+    "textures/blue_metal_plate/normal.webp": 17154,
+    "textures/blue_metal_plate/arm.webp": 29322,
+    "textures/concrete_floor_02/diffuse.webp": 365624,
+    "textures/concrete_floor_02/normal.webp": 201386,
+    "textures/concrete_floor_02/arm.webp": 74032,
+    "models/metal_office_desk.glb": 127980,
+    "models/plastic_monobloc_chair_01.glb": 149692,
+    "models/cardboard_box_01.glb": 213320,
+    "models/wooden_crate_01.glb": 167424,
+    "models/plastic_crate_01.glb": 368672,
+    "models/tool_cart.glb": 387060,
+    "models/portable_searchlight.glb": 235628,
+    "models/korean_fire_extinguisher_01.glb": 285328,
+    "models/industrial_storage_cart.glb": 315700,
+    "models/metal_toolbox.glb": 256976
+  }
+}

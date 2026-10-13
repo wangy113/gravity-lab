@@ -7,8 +7,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { GroundedSkybox } from 'three/addons/objects/GroundedSkybox.js';
 import { assetUrl, type RuntimeManifest } from '../../core/assets/manifest.ts';
+import { TIERS, type Tier } from '../../core/render/quality.ts';
 import type { SimEvent } from '../../core/sim/events.ts';
 import { BUILDINGS, TOP, TX, TZ } from '../constants.ts';
 import { FALLBACK, type PropId } from '../contents/props.ts';
@@ -37,6 +39,10 @@ export class LabView {
   stress = true;
   /** Stronger camera shake, a warning beacon and bigger dust, for demos. */
   drama = true;
+  tier: Tier = 'medium';
+  /** Set when something visible changed outside the simulation (camera, settings, hall). */
+  dirty = true;
+  private hallKey = 'aircraft';
   /** Seconds of the current run, shown on the fixed cameras' tag. */
   kickCam = 0;
 
@@ -78,6 +84,7 @@ export class LabView {
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.target.set(-0.3, 2.7, 0);
     Object.assign(this.controls, { enableDamping: true, maxPolarAngle: Math.PI * 0.49, minDistance: 3, maxDistance: 40 });
+    this.controls.addEventListener('change', () => (this.dirty = true));
 
     const sun = this.sun;
     sun.castShadow = true;
@@ -92,6 +99,7 @@ export class LabView {
   }
 
   resize(): void {
+    this.dirty = true;
     this.camera.aspect = innerWidth / innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(innerWidth, innerHeight);
@@ -116,10 +124,12 @@ export class LabView {
   }
 
   async loadHall(key: string): Promise<void> {
+    this.hallKey = key;
+    this.dirty = true;
     const H = this.manifest?.hdris.find((h) => h.key === key);
     try {
       if (!H) throw new Error(`hall ${key} not in manifest`);
-      const tex = await new HDRLoader().setDataType(THREE.HalfFloatType).loadAsync(assetUrl(H.file));
+      const tex = await new HDRLoader().setDataType(THREE.HalfFloatType).loadAsync(assetUrl(TIERS[this.tier].hdri === 'low' ? H.fileLow : H.file));
       tex.mapping = THREE.EquirectangularReflectionMapping;
       this.sun.position.set(H.sun[0] * 30, H.sun[1] * 30, H.sun[2] * 30);
       this.floorTint.setRGB(...H.floorTint);
@@ -141,7 +151,7 @@ export class LabView {
 
   private async loadModel(id: string): Promise<void> {
     try {
-      const gltf = await new GLTFLoader().loadAsync(assetUrl(this.manifest!.models[id]!));
+      const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(assetUrl(this.manifest!.models[id]!));
       gltf.scene.traverse((o) => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
       this.models[id] = gltf.scene;
     } catch (e) {
@@ -414,7 +424,7 @@ export class LabView {
 
   private puff(x: number, y: number, z: number, n: number, power: number): void {
     for (let i = 0; i < n; i++) {
-      const d = this.dust[this.dustI++ % this.dust.length]!;
+      const d = this.dust[this.dustI++ % TIERS[this.tier].dust]!;
       d.s.visible = true; d.life = 0; d.max = 1.6 + Math.random() * 2.2; d.size = 0.4 + Math.random() * 0.6 * power;
       d.s.position.set(x + (Math.random() - 0.5) * 2.4, y + (Math.random() - 0.3) * 0.6, z + (Math.random() - 0.5) * 2.4);
       d.v.set((Math.random() - 0.5) * 2.6 * power, Math.random() * 0.9 * power, (Math.random() - 0.5) * 2.6 * power);
@@ -451,6 +461,7 @@ export class LabView {
   // ---------------------------------------------------------------- cameras
 
   setCamera(mode: CameraMode): void {
+    this.dirty = true;
     if (mode === this.camMode) return;
     if (this.camMode === 'orbit') this.savedOrbit = { p: this.camera.position.clone(), t: this.controls.target.clone() };
     this.camMode = mode;
@@ -496,6 +507,32 @@ export class LabView {
     this.camera.position.add(this.camOffset);
   }
 
+  /** Applies a quality tier: pixel density, shadows, dust and the HDRI resolution. */
+  async applyTier(tier: Tier, reloadHall = true): Promise<void> {
+    const prevHdri = TIERS[this.tier].hdri;
+    this.tier = tier;
+    const t = TIERS[tier];
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, t.maxPixelRatio));
+    const shadows = t.shadowMap > 0;
+    if (shadows !== this.renderer.shadowMap.enabled || (shadows && this.sun.shadow.mapSize.x !== t.shadowMap)) {
+      this.renderer.shadowMap.enabled = shadows;
+      this.sun.shadow.mapSize.set(t.shadowMap || 1024, t.shadowMap || 1024);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+      this.scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material;
+        if (m) for (const x of Array.isArray(m) ? m : [m]) x.needsUpdate = true;
+      });
+    }
+    this.dirty = true;
+    if (reloadHall && prevHdri !== t.hdri && this.manifest) await this.loadHall(this.hallKey).catch(() => undefined);
+  }
+
+  /** True while dust is in the air. */
+  get dustActive(): boolean {
+    return this.dust.some((d) => d.s.visible);
+  }
+
   /** Beacon flashes twice a second while the table runs (steady under reduced motion). */
   updateBeacon(live: boolean, seconds: number): void {
     if (!this.beaconLight) return;
@@ -530,8 +567,16 @@ export class LabView {
     if (this.camMode !== 'orbit') this.setCamera('orbit');
   }
 
-  render(): void {
-    this.renderer.render(this.scene, this.camera);
+  /** Draws the frame if `draw` is set, and always undoes this frame's camera shake. */
+  finishFrame(draw: boolean): void {
+    if (draw) {
+      this.renderer.render(this.scene, this.camera);
+      this.dirty = false;
+    }
     this.camera.position.sub(this.camOffset);
+  }
+
+  get shaking(): boolean {
+    return this.camOffset.lengthSq() > 0 || this.kickCam > 0.01;
   }
 }
