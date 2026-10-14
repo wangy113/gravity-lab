@@ -27,7 +27,7 @@ const STATIC_PROPS: [string, number, number, number][] = [
   ['portable_searchlight', 7.4, 4.4, -2.3],
 ];
 
-interface MemberView { mesh: THREE.Mesh; spring: number; member: number }
+interface MemberView { mesh: THREE.Mesh; spring: number; member: number; w: number }
 
 export class LabView {
   readonly renderer: THREE.WebGLRenderer;
@@ -64,6 +64,7 @@ export class LabView {
   private readonly camOffset = new THREE.Vector3();
   private readonly dust: { s: THREE.Sprite; v: THREE.Vector3; life: number; max: number; size: number }[] = [];
   private dustI = 0;
+  private readonly damperMat = new THREE.MeshStandardMaterial({ color: 0xd2381e, metalness: 0.5, roughness: 0.35 });
   private beaconLight!: THREE.PointLight;
   private beaconLamp!: THREE.MeshStandardMaterial;
 
@@ -189,6 +190,7 @@ export class LabView {
       col: tiledBox(0.2, 1, 0.2, 0.6),
       brace: new THREE.CylinderGeometry(0.035, 0.035, 1, 10),
       bear: new THREE.CylinderGeometry(0.24, 0.24, 1, 28),
+      damper: new THREE.CylinderGeometry(0.075, 0.075, 1, 16),
       rod: new THREE.CylinderGeometry(0.07, 0.07, 1, 24),
       clevis: new THREE.BoxGeometry(0.25, 0.35, 0.4),
       bolt: new THREE.CylinderGeometry(0.03, 0.03, 0.004, 10),
@@ -262,9 +264,12 @@ export class LabView {
     const sim = lab.sim;
     this.storyMats = sim.springs.map((s) => (s.iso ? null : this.mat.steel.clone()));
     sim.springs.forEach((s, si) => s.members.forEach((m, mi) => {
-      const o = m.kind === 'col' ? mesh(this.geo.col!, this.storyMats[si]!) : m.kind === 'brace' ? mesh(this.geo.brace!, this.mat.brace) : mesh(this.geo.bear!, this.mat.rubber);
+      const o = m.kind === 'col' ? mesh(this.geo.col!, this.storyMats[si]!)
+        : m.kind === 'brace' ? mesh(this.geo.brace!, this.mat.brace)
+        : m.kind === 'damper' ? mesh(this.geo.damper!, this.damperMat)
+        : mesh(this.geo.bear!, this.mat.rubber);
       this.dyn.add(o);
-      this.memberViews.push({ mesh: o, spring: si, member: mi });
+      this.memberViews.push({ mesh: o, spring: si, member: mi, w: m.kind === 'col' && m.size ? m.size / 0.2 : 1 });
     }));
     for (const z of [-1.7, 1.7]) {
       const r = mesh(this.geo.rod!, this.mat.chrome);
@@ -379,7 +384,7 @@ export class LabView {
       const L = this._d.length();
       mv.mesh.position.addVectors(this._a, this._b).multiplyScalar(0.5);
       mv.mesh.quaternion.setFromUnitVectors(this.UP, this._d.divideScalar(L));
-      mv.mesh.scale.set(1, L, 1);
+      mv.mesh.scale.set(mv.w, L, mv.w);
     }
     springs.forEach((s, i) => {
       const mat = this.storyMats[i];

@@ -149,3 +149,20 @@ test('Space works the focused button, and single-key shortcuts can be turned off
   await expect(page.locator('#loader')).toHaveCount(0, { timeout: 60_000 });
   expect(await page.evaluate(() => (window as any).__lab.ui.shortcuts.value)).toBe(false);
 });
+
+test('the design challenge builds, tests and files a design in the notebook', async ({ page }) => {
+  await boot(page, '#design');
+  await skipDrawing(page);
+  await expect(page.locator('#designPanel')).toBeVisible();
+  await expect(page.locator('#dCost')).toHaveText('300 of 600 credits');
+  await page.click('#segStory1 button[data-v="heavy"]');
+  await page.click('#segStory2 button[data-v="heavy"]');
+  await expect(page.locator('#dCost')).toHaveText('460 of 600 credits');
+  await expect(page.locator('#dTest')).toBeDisabled(); // predict first
+  await page.getByLabel('It will survive').check();
+  await page.click('#dTest');
+  await expect(page.locator('#dResult')).toContainText('Survived. 460 credits.', { timeout: 120_000 });
+  await expect(page.locator('#dBest')).toContainText('Heavy, heavy, light, 460 credits');
+  await page.click('#notebookBtn');
+  await expect(page.locator('#nbDesigns')).toContainText('Heavy, heavy, light');
+});

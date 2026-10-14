@@ -1,10 +1,13 @@
 import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { BuildingType } from '../constants.ts';
 import type { ShakeMode } from '../motion/table.ts';
+import type { SpecimenSpec } from '../specimen/spec.ts';
 import { ShakeTableSim, type SimOptions } from './simulation.ts';
 
 export interface ScenarioConfig {
   type: BuildingType;
+  /** The design to test when `type` is 'custom'. */
+  spec?: SpecimenSpec;
   mode: ShakeMode;
   f?: number;
   g: number;
@@ -27,7 +30,7 @@ export interface ScenarioOutcome {
  * Shake, wait for the table to stop, then let things settle for 3 s.
  */
 export function runScenario(R: typeof RAPIER_NS, c: ScenarioConfig, opts: SimOptions = {}): ScenarioOutcome {
-  const sim = new ShakeTableSim(R, { ...opts, type: c.type });
+  const sim = new ShakeTableSim(R, { ...opts, type: c.type, ...(c.spec ? { spec: c.spec } : {}) });
   sim.setMode(c.mode);
   if (c.f !== undefined) sim.drive.f = c.f;
   sim.drive.g = c.g;

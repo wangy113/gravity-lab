@@ -12,9 +12,9 @@ import { checkStability, type StabilityReport } from './stability.ts';
 
 const TABLE_HALF = 0.15; // half thickness of the table top, m
 
-export type MemberKind = 'col' | 'brace' | 'bear';
+export type MemberKind = 'col' | 'brace' | 'bear' | 'damper';
 /** A drawn member, from a point on the lower body (`la`) to a point on the upper body (`lb`), body-local. */
-export interface Member { la: V3; lb: V3; kind: MemberKind }
+export interface Member { la: V3; lb: V3; kind: MemberKind; size?: number }
 
 export interface CompiledFloor {
   y: number;         // centre height, m
@@ -110,11 +110,13 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
       iso: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift, members: [],
     };
     const Cx = half.x - 0.15, Cz = half.z - 0.15;
-    for (const cx of [-Cx, Cx]) for (const cz of [-Cz, Cz]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'col' });
+    for (const cx of [-Cx, Cx]) for (const cz of [-Cz, Cz]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'col', ...(st.columnSize ? { size: st.columnSize } : {}) });
     if (st.bracing === 'x') for (const cz of [-Cz, Cz]) {
       s.members.push({ la: { x: rest.x - Cx, y: lh, z: cz }, lb: { x: Cx, y: -t / 2, z: cz }, kind: 'brace' });
       s.members.push({ la: { x: rest.x + Cx, y: lh, z: cz }, lb: { x: -Cx, y: -t / 2, z: cz }, kind: 'brace' });
     }
+    // One damper per side, across the story's inner diagonal, just inside the frame.
+    if (st.dampers) for (const cz of [-Cz * 0.8, Cz * 0.8]) s.members.push({ la: { x: rest.x - Cx + 0.35, y: lh, z: cz }, lb: { x: Cx - 0.35, y: -t / 2, z: cz }, kind: 'damper' });
     springs.push(s);
     lower = f; prevCenter = y;
   });

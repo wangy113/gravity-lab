@@ -3,6 +3,7 @@
  * browser only (no accounts), and downloadable as a printable lab report.
  */
 import { OBJECTIVES, POE } from './pedagogy.ts';
+import { CHALLENGE, type Design } from './specimen/design.ts';
 import { STOPS } from './tour.ts';
 
 export interface RunResult {
@@ -25,16 +26,35 @@ export interface TestEntry {
   explanation: string;
 }
 
+/** One test of the student's own building in the design challenge. */
+export interface DesignAttempt {
+  at: string; // ISO time
+  name: string;
+  design: Design;
+  cost: number; // credits
+  prediction: 'survive' | 'collapse' | null;
+  survived: boolean;
+  maxDriftPct: number; // largest story drift before any failure
+  failure: string; // empty when nothing failed
+}
+
 export interface Notebook {
   student: string;
   tests: TestEntry[]; // one per guided test
   explore: RunResult[]; // free runs, newest last
+  designs: DesignAttempt[]; // design challenge attempts, newest last
+  designExplanation: string;
+}
+
+/** The cheapest design that survived within the budget, if any. */
+export function bestDesign(n: Notebook): DesignAttempt | null {
+  return n.designs.filter((a) => a.survived && a.cost <= CHALLENGE.budget).sort((a, b) => a.cost - b.cost)[0] ?? null;
 }
 
 const KEY = 'shake-table-lab.notebook.v1';
 
 export function emptyNotebook(): Notebook {
-  return { student: '', tests: STOPS.map(() => ({ prediction: null, result: null, explanation: '' })), explore: [] };
+  return { student: '', tests: STOPS.map(() => ({ prediction: null, result: null, explanation: '' })), explore: [], designs: [], designExplanation: '' };
 }
 
 export function loadNotebook(): Notebook {
@@ -89,6 +109,15 @@ export function reportHtml(n: Notebook): string {
         .map((r) => `<tr><td>${esc(r.building)}</td><td>${esc(r.shaking)} ${r.strength.toFixed(2)} g${r.frequency ? ` ${r.frequency.toFixed(2)} Hz` : ''}</td><td>${r.peakRoofCm.toFixed(0)} cm</td><td>${esc(r.failure || 'none')}</td></tr>`)
         .join('')}</table></section>`
     : '';
+  const best = bestDesign(n);
+  const designs = n.designs.length
+    ? `<section><h2>Design challenge</h2><p class="obj"><b>Goal:</b> design a building that survives a ${CHALLENGE.g} g quake for ${CHALLENGE.budget} credits or less.</p>
+<p><b>Best design:</b> ${best ? `${esc(best.name)}, ${best.cost} credits` : '<em>none survived within the budget yet</em>'}</p>
+<table><tr><th>Design</th><th>Cost</th><th>Predicted</th><th>Result</th><th>Largest drift</th></tr>${n.designs
+        .map((a) => `<tr><td>${esc(a.name)}</td><td>${a.cost}</td><td>${a.prediction ?? 'none'}</td><td>${a.survived ? 'survived' : esc(a.failure)}</td><td>${a.maxDriftPct.toFixed(1)}%</td></tr>`)
+        .join('')}</table>
+<h3>Explain</h3><p class="q">What made your best design work, and what did a failed design teach you?</p><div class="ans">${n.designExplanation ? esc(n.designExplanation).replace(/\n/g, '<br>') : '<em>No explanation yet</em>'}</div></section>`
+    : '';
   const done = n.tests.filter((t) => t.result).length;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shake Table Lab report</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#111}h1{margin:0}h2{margin-top:28px;border-bottom:2px solid #ffb020;padding-bottom:4px}h3{margin:14px 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#555}.obj{background:#f4f6f8;padding:6px 10px;border-radius:6px}.q{color:#444}.ans{border-left:4px solid #4cc9f0;padding:6px 10px;background:#f7fbfd;white-space:normal}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}@media print{h2{break-after:avoid}section{break-inside:avoid}}</style>
@@ -96,6 +125,7 @@ export function reportHtml(n: Notebook): string {
 <p><b>Student:</b> ${esc(n.student || 'not given')}<br><b>Date:</b> ${new Date().toLocaleDateString()}<br><b>Tests completed:</b> ${done} of ${STOPS.length}</p>
 <h2>Learning objectives</h2><ul>${OBJECTIVES.map((o) => `<li><b>${o.id}</b> ${esc(o.text)}</li>`).join('')}</ul>
 ${tests}
+${designs}
 ${explore}
 <p style="margin-top:32px;color:#666;font-size:13px">Made with the Shake Table Lab, a virtual earthquake engineering lab. The model is simplified for teaching and is not a design tool.</p>
 </body></html>`;

@@ -57,6 +57,8 @@ export interface Spring {
 
 export interface SimOptions {
   type?: BuildingType;
+  /** The specification to build when `type` is 'custom'. */
+  spec?: SpecimenSpec;
   /** Seed for debris and other random choices that affect physics. */
   seed?: number;
   /** Use prop sizes measured from the Poly Haven models (default) or the prototype's fallback boxes. */
@@ -86,6 +88,7 @@ export class ShakeTableSim {
   peakF = 0; // Hz
 
   private readonly R: Rapier;
+  private customSpec: SpecimenSpec | null = null;
   private readonly seed: number;
   private readonly useModelSizes: boolean;
   private rand!: Rng; // physics stream
@@ -96,7 +99,7 @@ export class ShakeTableSim {
     this.type = opts.type ?? 'bare';
     this.seed = opts.seed ?? 1;
     this.useModelSizes = opts.useModelSizes ?? true;
-    this.reset(this.type);
+    this.reset(this.type, opts.spec);
   }
 
   get anyFailed(): boolean {
@@ -108,8 +111,10 @@ export class ShakeTableSim {
    * a building other than the preset for `type`. Throws a SpecimenError, with plain
    * messages, when the specification is out of bounds or would not integrate stably.
    */
-  reset(type: BuildingType = this.type, spec: SpecimenSpec = PRESETS[type]): void {
-    const compiled = compileSpecimen(spec);
+  reset(type: BuildingType = this.type, spec?: SpecimenSpec): void {
+    if (spec) this.customSpec = spec;
+    if (type === 'custom' && !this.customSpec) throw new Error('a custom building needs a specification');
+    const compiled = compileSpecimen(type === 'custom' ? this.customSpec! : PRESETS[type]);
     this.type = type;
     this.specimen = compiled;
     this.generation++;

@@ -54,7 +54,8 @@ async function boot(): Promise<void> {
   if (m) {
     ctl.showStop(+m[1]! - 1);
     if (run) ctl.runStop();
-  } else ui.dialog.value = 'intro';
+  } else if (hash === '#design') ctl.openDesign();
+  else ui.dialog.value = 'intro';
 
   if (import.meta.env.DEV || new URLSearchParams(location.search).has('test')) {
     (window as unknown as { __lab: unknown }).__lab = { lab, view, ctl, ui };

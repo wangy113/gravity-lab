@@ -39,6 +39,12 @@ test('a guided test', async ({ page }) => {
   expect(await audit(page)).toEqual([]);
 });
 
+test('the design challenge', async ({ page }) => {
+  await boot(page, '#design');
+  await expect(page.locator('#designPanel')).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+});
+
 for (const [name, button] of [['notebook', '#notebookBtn'], ['instructors', '#teachBtn'], ['help', '#helpBtn']] as const) {
   test(`the ${name} dialog`, async ({ page }) => {
     await boot(page);

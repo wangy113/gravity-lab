@@ -3,7 +3,7 @@
  * data: floors, stories and a base. `compile.ts` turns it into bodies and springs, and
  * `stability.ts` checks it before the simulation is allowed to run it.
  */
-import { CH, M, ST, ISO_H, ISO_LIMIT, type BuildingType } from '../constants.ts';
+import { CH, M, ST, ISO_H, ISO_LIMIT, type PresetType } from '../constants.ts';
 
 export interface DamageLawSpec {
   /** The prototype's law: stiffness drops by up to 30% past the yield drift, failure at the ultimate drift. */
@@ -18,6 +18,10 @@ export interface StorySpec {
   lateral: { kind: 'story'; k: number; law: DamageLawSpec }; // N/m
   /** Drawn members only. Model 1 puts the bracing's stiffness in `lateral.k`. */
   bracing: 'none' | 'x';
+  /** Drawn only: column width, m (0.2 when not given). */
+  columnSize?: number;
+  /** Drawn only: show dampers. Model 1 puts their effect in `dampingRatio`. */
+  dampers?: boolean;
 }
 
 export type BaseSpec =
@@ -42,7 +46,7 @@ const tower = (id: string, name: string, s: StorySpec, base: BaseSpec): Specimen
 });
 
 /** The prototype's three buildings (its `TYPES`), unchanged. */
-export const PRESETS: Record<BuildingType, SpecimenSpec> = {
+export const PRESETS: Record<PresetType, SpecimenSpec> = {
   bare: tower('bare', 'Bare frame', story(1.14e6, 0.02, 0.02, 0.06, 'none'), { kind: 'fixed' }),
   braced: tower('braced', 'Braced', story(6.84e6, 0.05, 0.015, 0.045, 'x'), { kind: 'fixed' }),
   isolated: tower('isolated', 'Isolated', story(6.84e6, 0.05, 0.015, 0.045, 'x'), { kind: 'rubber', k: 1.01e5, dampingRatio: 0.25, moatGap: ISO_LIMIT, height: ISO_H }),

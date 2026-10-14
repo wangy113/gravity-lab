@@ -13,7 +13,9 @@ export const ISO_LIMIT = 0.45;      // isolator moat gap, m
 export const M = 4000;              // slab mass, kg
 export const STROKE = 0.5;          // table stroke, m
 
-export type BuildingType = 'bare' | 'braced' | 'isolated';
+export type PresetType = 'bare' | 'braced' | 'isolated';
+/** A preset, or a student's own design from the design challenge. */
+export type BuildingType = PresetType | 'custom';
 // The buildings themselves are specimen specifications, see specimen/spec.ts (PRESETS).
 
 /** Static colliders around the pit, [cx, cy, cz, hx, hy, hz] (the prototype's RIM). */

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { Controller } from '../controller.ts';
 import { preflightNote } from '../motion/preflight.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
+import { DesignPanel } from './design.tsx';
 import { CameraControls, CollapseBanner, GuidePanel, HelpDialog, InstructorsDialog, NotebookDialog, StressLegend } from './panels.tsx';
 import { ui, type DialogName } from './store.ts';
 
@@ -32,7 +33,8 @@ function Header({ ctl }: Ctl) {
       <div class="spacer" />
       <nav class="nav card" aria-label="Lab sections">
         <button type="button" class="navbtn" id="guideBtn" aria-pressed={guided} onClick={() => ctl.showStop(ui.stop.value ?? 0)}>Guided lab</button>
-        <button type="button" class="navbtn" id="exploreBtn" aria-pressed={!guided} onClick={() => ctl.explore()}>Explore</button>
+        <button type="button" class="navbtn" id="designBtn" aria-pressed={ui.design.value} onClick={() => ctl.openDesign()}>Design challenge</button>
+        <button type="button" class="navbtn" id="exploreBtn" aria-pressed={!guided && !ui.design.value} onClick={() => ctl.explore()}>Explore</button>
         <button type="button" class="navbtn" id="notebookBtn" onClick={() => ctl.openDialog('notebook')}>Notebook <span class="badge">{done}/{STOPS.length}</span></button>
         <button type="button" class="navbtn" id="teachBtn" onClick={() => ctl.openDialog('instructors')}>For instructors</button>
         <button type="button" class="navbtn" id="helpBtn" onClick={() => ctl.openDialog('help')}>Help</button>
@@ -166,6 +168,9 @@ function IntroDialog({ ctl }: Ctl) {
         <button type="button" class="choice primary" id="introGuide" onClick={go(() => ctl.showStop(0))}>
           <b>Start the guided lab</b><span>6 short tests, about 30 minutes. For each one you predict, test, observe and explain.</span>
         </button>
+        <button type="button" class="choice" id="introDesign" onClick={go(() => ctl.openDesign())}>
+          <b>Take the design challenge</b><span>Build your own building on a budget and see if it survives a quake.</span>
+        </button>
         <button type="button" class="choice" id="introFree" onClick={go(() => ctl.explore())}>
           <b>Explore on my own</b><span>Every control, no steps. Your runs still go to the notebook.</span>
         </button>
@@ -245,12 +250,13 @@ export function App({ ctl }: Ctl) {
       <CollapseBanner />
       <Header ctl={ctl} />
       {/* Guided lab: the lesson panel replaces the control room, because each test sets itself up. */}
-      <div class={`leftcol${ui.stop.value !== null ? ' guided' : ''}`}>
-        {ui.stop.value !== null ? <GuidePanel ctl={ctl} /> : <><ControlRoom ctl={ctl} /><Chart ctl={ctl} /></>}
+      {/* The design challenge works the same way: its panel replaces the control room. */}
+      <div class={`leftcol${ui.stop.value !== null || ui.design.value ? ' guided' : ''}`}>
+        {ui.stop.value !== null ? <GuidePanel ctl={ctl} /> : ui.design.value ? <DesignPanel ctl={ctl} /> : <><ControlRoom ctl={ctl} /><Chart ctl={ctl} /></>}
       </div>
       <div class="rightcol">
         <Instruments />
-        {ui.stop.value !== null && <Chart ctl={ctl} />}
+        {(ui.stop.value !== null || ui.design.value) && <Chart ctl={ctl} />}
       </div>
       <CameraControls ctl={ctl} />
       <ReplayBar ctl={ctl} />

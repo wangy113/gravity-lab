@@ -6,7 +6,8 @@ import { Synth } from '../core/audio/synth.ts';
 import type { BuildingType } from './constants.ts';
 import { guessTier, lowerTier, saveChoice, TIERS, type TierChoice } from '../core/render/quality.ts';
 import { CHART_SECONDS, type Lab } from './lab.ts';
-import { downloadReport, emptyNotebook, saveNotebook, type Notebook, type RunResult } from './notebook.ts';
+import { downloadReport, emptyNotebook, saveNotebook, type DesignAttempt, type Notebook, type RunResult } from './notebook.ts';
+import { CHALLENGE, designCost, designName, designSpec, type Design } from './specimen/design.ts';
 import type { ShakeMode } from './motion/table.ts';
 import type { CameraMode, LabView } from './scene/view.ts';
 import { STOPS } from './tour.ts';
@@ -24,7 +25,7 @@ export class Controller {
   private fps = { from: 0, frames: 0, done: true };
   private pendingStart: ReturnType<typeof setTimeout> | undefined;
   /** The run in progress: which guided test it belongs to, and what it has measured so far. */
-  private run: { stop: number | null; natBeat: number; peakTableG: number; failT: number | null; ended: number | null } | null = null;
+  private run: { stop: number | null; design: Design | null; prediction: 'survive' | 'collapse' | null; natBeat: number; peakTableG: number; maxDrift: number; failT: number | null; ended: number | null } | null = null;
   private bannerTimer: ReturnType<typeof setTimeout> | undefined;
   chartCanvas: HTMLCanvasElement | null = null;
 
@@ -92,7 +93,8 @@ export class Controller {
     ui.shaking.value = true;
     ui.banner.value = null;
     const stop = ui.stop.value;
-    this.run = { stop, natBeat: this.lab.sim.natBeat(), peakTableG: 0, failT: null, ended: null };
+    const design = this.lab.sim.type === 'custom' && ui.design.value ? structuredClone(ui.draft.value) : null;
+    this.run = { stop, design, prediction: design ? ui.designPrediction.value : null, natBeat: this.lab.sim.natBeat(), peakTableG: 0, maxDrift: 0, failT: null, ended: null };
     if (stop !== null && ui.poeStage.value < 1) ui.poeStage.value = 1;
   }
 
@@ -183,6 +185,7 @@ export class Controller {
       ui.poeStage.value = t.prediction === null ? 0 : t.result === null ? 1 : t.explanation ? 3 : 2;
     }
     ui.stop.value = n;
+    ui.design.value = false;
     history.replaceState(null, '', `#stop=${n + 1}`);
   }
 
@@ -252,10 +255,62 @@ export class Controller {
     ui.dialog.value = name;
   }
 
-  /** Free mode: closes the guided test panel. */
+  /** Free mode: closes the guided test panel and the design challenge. */
   explore(): void {
     ui.stop.value = null;
+    ui.design.value = false;
     history.replaceState(null, '', location.pathname + location.search);
+  }
+
+  // ---------------------------------------------------------------- design challenge
+
+  /** Opens the design challenge and puts the current draft on the table. */
+  openDesign(): void {
+    ui.stop.value = null;
+    ui.design.value = true;
+    history.replaceState(null, '', '#design');
+    this.buildDraft();
+  }
+
+  /** Changes the draft and rebuilds it on the table, so students see each choice at once. */
+  editDraft(fn: (d: Design) => void): void {
+    const d = structuredClone(ui.draft.value);
+    fn(d);
+    ui.draft.value = d;
+    ui.designPrediction.value = null;
+    this.buildDraft();
+  }
+
+  private buildDraft(): void {
+    if (this.lab.replay.on) this.exitReplay();
+    clearTimeout(this.pendingStart);
+    ui.type.value = 'custom';
+    this.lab.setType('custom', designSpec(ui.draft.value));
+    this.lab.sim.drive.mode = ui.mode.value;
+    this.syncDrive();
+    ui.replayOn.value = false;
+    ui.peakNote.value = '';
+    ui.shaking.value = false;
+    this.renderStories();
+  }
+
+  /** Tests the draft against the challenge quake, after 0.7 s of settling like a guided test. */
+  testDesign(): void {
+    this.setMode('quake');
+    this.setG(CHALLENGE.g);
+    this.setStress(true);
+    this.buildDraft();
+    this.setCamera('orbit');
+    const t0 = this.lab.sim.simT;
+    const wait = (): void => {
+      if (this.lab.sim.simT - t0 >= 0.7) this.start();
+      else this.pendingStart = setTimeout(wait, 50);
+    };
+    this.pendingStart = setTimeout(wait, 50);
+  }
+
+  setDesignExplanation(text: string): void {
+    this.updateNotebook((n) => { n.designExplanation = text; });
   }
 
   toggleFullscreen(): void {
@@ -367,6 +422,7 @@ export class Controller {
     if (!run || this.lab.replay.on) return;
     const sim = this.lab.sim, d = sim.drive;
     run.peakTableG = Math.max(run.peakTableG, d.accG);
+    for (const s of sim.springs) if (!s.failed && !s.iso) run.maxDrift = Math.max(run.maxDrift, s.r);
     if (!(d.done && d.env <= 0)) return;
     run.ended ??= sim.simT;
     if (sim.simT - run.ended < 1.5) return; // let falling things land
@@ -384,7 +440,15 @@ export class Controller {
       failure: sim.failNote,
       wallBlocksDown: sim.wallBlocksDown(),
     };
-    if (run.stop !== null) {
+    if (run.design) {
+      const a: DesignAttempt = {
+        at: r.at, name: designName(run.design), design: run.design, cost: designCost(run.design), prediction: run.prediction,
+        survived: !sim.anyFailed, maxDriftPct: run.maxDrift * 100, failure: sim.failNote,
+      };
+      this.updateNotebook((n) => { n.designs.push(a); n.designs = n.designs.slice(-30); });
+      ui.designPrediction.value = null;
+      ui.announce.value = a.survived ? `Your design survived, ${a.cost} credits.` : `Your design collapsed. ${a.failure}.`;
+    } else if (run.stop !== null) {
       this.updateNotebook((n) => { n.tests[run.stop!]!.result = r; });
       if (ui.stop.value === run.stop) ui.poeStage.value = Math.max(ui.poeStage.value, 2);
     } else {

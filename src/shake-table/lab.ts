@@ -8,6 +8,7 @@ import { FixedStepHost } from '../core/sim/host.ts';
 import { PoseBuffer, readPoses } from '../core/sim/poses.ts';
 import { Recorder } from '../core/sim/recorder.ts';
 import { DT, type BuildingType } from './constants.ts';
+import type { SpecimenSpec } from './specimen/spec.ts';
 import type { ShakeMode } from './motion/table.ts';
 import { ShakeTableSim } from './sim/simulation.ts';
 
@@ -66,9 +67,10 @@ export class Lab {
 
   // ---------------------------------------------------------------- commands
 
-  setType(type: BuildingType): void {
+  /** Builds a preset, or a custom design when `type` is 'custom' and `spec` is given. */
+  setType(type: BuildingType, spec?: SpecimenSpec): void {
     this.exitReplay();
-    this.sim.reset(type);
+    this.sim.reset(type, spec);
     this.afterReset();
   }
 
