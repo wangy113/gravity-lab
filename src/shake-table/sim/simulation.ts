@@ -24,6 +24,7 @@ export type BodyKind = 'table' | 'slab' | 'block' | 'prop' | 'piece';
 export type BodyShape =
   | { type: 'table' }
   | { type: 'slab'; half: { x: number; y: number; z: number } }
+  | { type: 'tmd'; half: { x: number; y: number; z: number } }
   | { type: 'block'; w: number; h: number; d: number; tint: number; uv: [number, number] }
   | { type: 'prop'; prop: PropId; size: PropSize }
   | { type: 'member-piece'; member: 'col' | 'brace'; len: number; story: number }
@@ -47,7 +48,7 @@ export interface Spring {
   a: BodyRec; b: BodyRec; aDyn: boolean;
   rest: V3;
   k: number; c: number; kv: number; cv: number; kr: number; cr: number;
-  iso: boolean; label: string; yieldR: number; ultR: number;
+  iso: boolean; tmd: boolean; label: string; yieldR: number; ultR: number;
   moatGap: number; driftHeight: number; // m
   bilinear: { hardening: number; capacity: number } | null;
   pDelta: number; // N/m, weight above over story height (Model 2)
@@ -82,6 +83,10 @@ export class ShakeTableSim {
   springs: Spring[] = [];
   /** Slab bodies bottom to top (base slab first when isolated). */
   levels: BodyRec[] = [];
+  /** The tuned mass damper's block, if the building has one. */
+  tmdBlock: BodyRec | null = null;
+  /** Every compiled floor's body, in the compiler's order (slabs, then the damper block). */
+  private floorBodies: BodyRec[] = [];
   table!: BodyRec;
   simT = 0;
   steps = 0;
@@ -127,7 +132,7 @@ export class ShakeTableSim {
     this.world = new R.World({ x: 0, y: -9.81, z: 0 });
     this.world.timestep = DT;
     this.world.integrationParameters.numSolverIterations = 8;
-    this.bodies = []; this.springs = []; this.levels = [];
+    this.bodies = []; this.springs = []; this.levels = []; this.floorBodies = []; this.tmdBlock = null;
     this.events.length = 0;
     this.simT = 0; this.steps = 0;
     this.failNote = ''; this.peakRoof = 0; this.peakF = 0;
@@ -223,14 +228,15 @@ export class ShakeTableSim {
     const { x: hx, y: hy, z: hz } = f.half;
     const b = this.dynBody(X0, f.y, 0, null, false);
     this.world.createCollider(this.R.ColliderDesc.cuboid(hx, hy, hz).setDensity(f.mass / (hx * 2 * (hy * 2) * hz * 2)).setFriction(0.7), b);
-    const o = this.register(b, f.mass, 'slab', { type: 'slab', half: f.half });
-    this.levels.push(o);
+    const o = this.register(b, f.mass, 'slab', f.kind === 'tmd' ? { type: 'tmd', half: f.half } : { type: 'slab', half: f.half });
+    if (f.kind === 'tmd') this.tmdBlock = o; else this.levels.push(o);
+    this.floorBodies.push(o);
     return o;
   }
 
   private addSpring(cs: CompiledSpring): Spring {
     const s: Spring = {
-      ...cs, index: this.springs.length, a: cs.lower < 0 ? this.table : this.levels[cs.lower]!, b: this.levels[cs.upper]!,
+      ...cs, index: this.springs.length, a: cs.lower < 0 ? this.table : this.floorBodies[cs.lower]!, b: this.floorBodies[cs.upper]!,
       aDyn: cs.lower >= 0, ex: 0, ez: 0, plastic: 0, damage: 0, failed: false, r: 0, d: 0, members: cs.members.map((m) => ({ ...m })),
     };
     this.springs.push(s);

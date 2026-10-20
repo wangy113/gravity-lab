@@ -55,6 +55,7 @@ export function checkStability(floors: readonly CompiledFloor[], springs: readon
   const mass = floors.map((f) => f.mass), inertia = floors.map((f) => f.inertia);
   const modes = [
     // Worst case laterally: an isolated building pressed against its moat stop.
+    // Isolators and the roof damper at their stops are the stiffest case.
     ...chainModes('lateral', mass, springs.map((s) => (s.iso ? s.k * (1 + MOAT_FACTOR) : s.k)), springs.map((s) => s.c), dt),
     ...chainModes('vertical', mass, springs.map((s) => s.kv), springs.map((s) => s.cv), dt),
     ...chainModes('rocking', inertia, springs.map((s) => s.kr), springs.map((s) => s.cr), dt),

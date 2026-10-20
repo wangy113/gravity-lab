@@ -31,6 +31,8 @@ const damperSets = (k: number): boolean[][] => [
 const designs: Design[] = [];
 for (const s of seqs) for (const dmp of damperSets(n)) designs.push({ level, frames: s, dampers: dmp, isolated: false });
 designs.push({ level, frames: Array(n).fill('light'), dampers: Array(n).fill(false), isolated: true });
+// Every frame sequence again with a tuned mass damper on the roof, and no story dampers.
+for (const s of seqs) designs.push({ level, frames: s, dampers: Array(n).fill(false), isolated: false, tmd: true });
 
 const rows: string[] = [];
 for (const d of designs) {

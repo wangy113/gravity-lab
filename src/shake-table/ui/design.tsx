@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { attemptLevel, bestDesign, levelGoal } from '../notebook.ts';
 import { compileSpecimen, SpecimenError } from '../specimen/compile.ts';
-import { DAMPER, designCost, designSpec, FRAMES, ISOLATION, LEVELS, meetsLevel, type FrameChoice, type LevelId } from '../specimen/design.ts';
+import { DAMPER, designCost, designSpec, FRAMES, ISOLATION, LEVELS, meetsLevel, TMD, type FrameChoice, type LevelId } from '../specimen/design.ts';
 import { Seg, type Ctl } from './app.tsx';
 import { ui } from './store.ts';
 
@@ -13,6 +13,7 @@ const HINTS = [
   'Dampers soak up energy like shock absorbers. They help most on a story that is close to failing, but they cannot save a frame that is far too weak.',
   'Lower stories carry the weight of everything above. When a story leans, that weight pushes it further over (the P-Delta effect), so tall buildings need their strength at the bottom.',
   'Drift is how far a story leans compared with its height. A building can stand after a big drift but be unsafe to use, which is why level 2 has a drift limit. Spread the stiffness so no single story takes all the bending.',
+  'A tuned mass damper is a heavy block on the roof that swings against the building. It works best on a building that stays springy. Once a story yields, the building\'s beat changes and the damper is no longer tuned to it. Engineers mostly use them against steady swaying, such as from wind.',
   'Base isolation lets the ground move under the building. It works very well here, but it is the most expensive choice.',
 ];
 
@@ -50,6 +51,7 @@ export function DesignPanel({ ctl }: Ctl) {
             <label class="check"><input type="checkbox" id={`damp${i + 1}`} checked={d.dampers[i]} onChange={(e) => { const on = e.currentTarget.checked; ctl.editDraft((x) => { x.dampers[i] = on; }); }} /> {DAMPER.label} +{DAMPER.cost}</label>
           </div>
         ))}
+        <label class="check base"><input type="checkbox" id="tmdBox" checked={!!d.tmd} onChange={(e) => { const on = e.currentTarget.checked; ctl.editDraft((x) => { x.tmd = on; }); }} /> {TMD.label} +{TMD.cost}</label>
         <label class="check base"><input type="checkbox" id="isoBox" checked={d.isolated} onChange={(e) => { const on = e.currentTarget.checked; ctl.editDraft((x) => { x.isolated = on; }); }} /> {ISOLATION.label} under the building +{ISOLATION.cost}</label>
       </div>
 

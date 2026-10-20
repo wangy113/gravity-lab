@@ -11,6 +11,8 @@ import { specProblems, type SpecimenSpec } from './spec.ts';
 import { checkStability, type StabilityReport } from './stability.ts';
 
 const TABLE_HALF = 0.15; // half thickness of the table top, m
+/** How far the roof damper's block can move before it hits its bumpers, m. */
+export const TMD_STROKE = 0.35;
 /** Model 2's support springs: single-story frequencies, Hz, and damping ratio. */
 export const SUPPORT_V2 = { vertical: 15, rocking: 10, damping: 0.2 } as const;
 
@@ -19,6 +21,8 @@ export type MemberKind = 'col' | 'brace' | 'bear' | 'damper';
 export interface Member { la: V3; lb: V3; kind: MemberKind; size?: number }
 
 export interface CompiledFloor {
+  /** A building floor, or the tuned mass damper's block on the roof. */
+  kind: 'slab' | 'tmd';
   y: number;         // centre height, m
   mass: number;      // kg
   half: { x: number; y: number; z: number }; // half sizes, m
@@ -33,7 +37,10 @@ export interface CompiledSpring {
   k: number; c: number;   // lateral, N/m and N s/m
   kv: number; cv: number; // vertical support
   kr: number; cr: number; // rocking support
+  /** No damage law: isolators and the tuned mass damper. */
   iso: boolean;
+  /** The tuned mass damper's spring (also `iso`, but with no moat). */
+  tmd: boolean;
   moatGap: number;   // m, isolators only
   driftHeight: number; // m
   yieldR: number; ultR: number; // drift ratios
@@ -50,8 +57,10 @@ export interface CompiledSpecimen {
   springs: CompiledSpring[];
   /** Height of the lowest floor surface furniture stands on, m. */
   groundFloor: number;
-  /** Undamaged natural frequencies, Hz, lowest first. */
+  /** Undamaged natural frequencies, Hz, lowest first (with the roof damper, if any). */
   modes: number[];
+  /** The roof damper's tuning, if it has one: its own frequency (Hz), damping ratio and mass (kg). */
+  tmd: { hz: number; zeta: number; mass: number } | null;
   stability: StabilityReport;
 }
 
@@ -83,12 +92,13 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   const cr = 2 * (v2 ? SUPPORT_V2.damping : 0.3) * Math.sqrt(kr * inertia);
   // Weight carried by each story (the floors above it), for P-Delta in Model 2.
   const G = 9.81;
-  const weightAbove = (story: number): number => (v2 ? G * m * (n - story) : 0);
+  const tmdMass = spec.tmd ? spec.tmd.massRatio * m * n : 0;
+  const weightAbove = (story: number): number => (v2 ? G * (m * (n - story) + tmdMass) : 0);
 
   const floors: CompiledFloor[] = [];
   const springs: CompiledSpring[] = [];
   const support = { kv, cv, kr, cr };
-  const addFloor = (y: number): number => floors.push({ y, mass: m, half, inertia }) - 1;
+  const addFloor = (y: number): number => floors.push({ kind: 'slab', y, mass: m, half, inertia }) - 1;
 
   let lower = -1, lowerTopY = TOP, lowerHalf = TABLE_HALF, lx = X0;
   let groundFloor = TOP;
@@ -100,7 +110,7 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     const s: CompiledSpring = {
       label: 'Isolators', lower: -1, upper: b, rest: { x: X0, y: TABLE_HALF + base.height + t / 2, z: 0 },
       k: base.k, c: 2 * base.dampingRatio * Math.sqrt(base.k * totalMass), ...support,
-      iso: true, moatGap: base.moatGap, driftHeight: spec.stories[0]!.columnHeight, yieldR: 0, ultR: Infinity,
+      iso: true, tmd: false, moatGap: base.moatGap, driftHeight: spec.stories[0]!.columnHeight, yieldR: 0, ultR: Infinity,
       bilinear: null, pDelta: 0, members: [],
     };
     const B = Math.min(half.x, half.z) - 0.4;
@@ -120,7 +130,7 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     const s: CompiledSpring = {
       label: `Story ${i + 1}`, lower, upper: f, rest,
       k: st.lateral.k, c: 2 * st.dampingRatio * Math.sqrt(st.lateral.k * m), ...support,
-      iso: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift,
+      iso: false, tmd: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift,
       bilinear: law.kind === 'bilinear' ? { hardening: law.hardening, capacity: law.capacity } : null,
       pDelta: weightAbove(i) / rest.y,
       members: [],
@@ -138,8 +148,34 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   });
 
   // P-Delta softens each story, so the building swings a little slower than its frame alone.
-  const modes = shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k - s.pDelta));
+  const frequencies = (): number[] => shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k - s.pDelta));
+  let tmd: CompiledSpecimen['tmd'] = null;
+  if (spec.tmd) {
+    // Den Hartog's optimum for a damper on an undamped building: tune just below the first
+    // mode, f = f1 / (1 + mu), with damping ratio sqrt(3 mu / (8 (1 + mu)^3)).
+    const mu = spec.tmd.massRatio, f1 = frequencies()[0]!;
+    const hz = f1 / (1 + mu), zeta = Math.sqrt((3 * mu) / (8 * Math.pow(1 + mu, 3)));
+    const bh = { x: 0.35, y: 0.2, z: 0.35 }, gap = 0.12; // a steel block on short bearings
+    const roof = floors.length - 1;
+    const tI = (tmdMass * (4 * bh.x * bh.x + 4 * bh.y * bh.y)) / 12;
+    const tk = tmdMass * Math.pow(2 * Math.PI * hz, 2);
+    const tkv = tmdMass * Math.pow(2 * Math.PI * SUPPORT_V2.vertical, 2), tkr = tI * Math.pow(2 * Math.PI * SUPPORT_V2.rocking, 2);
+    const restY = t / 2 + gap + bh.y;
+    floors.push({ kind: 'tmd', y: floors[roof]!.y + restY, mass: tmdMass, half: bh, inertia: tI });
+    const s: CompiledSpring = {
+      label: 'Roof damper', lower: roof, upper: floors.length - 1, rest: { x: 0, y: restY, z: 0 },
+      k: tk, c: 2 * zeta * Math.sqrt(tk * tmdMass),
+      kv: tkv, cv: 2 * SUPPORT_V2.damping * Math.sqrt(tkv * tmdMass), kr: tkr, cr: 2 * SUPPORT_V2.damping * Math.sqrt(tkr * tI),
+      // Its stroke is limited by bumpers 35 cm out, like the isolators' moat, so it stays on the roof.
+      iso: true, tmd: true, moatGap: TMD_STROKE, driftHeight: restY, yieldR: 0, ultR: Infinity, bilinear: null, pDelta: 0, members: [],
+    };
+    // the block's bearings and dampers, drawn from the roof to its corners
+    for (const cx of [-0.25, 0.25]) for (const cz of [-0.25, 0.25]) s.members.push({ la: { x: cx, y: t / 2, z: cz }, lb: { x: cx, y: -bh.y, z: cz }, kind: 'damper' });
+    springs.push(s);
+    tmd = { hz, zeta, mass: tmdMass };
+  }
+  const modes = frequencies();
   const stability = checkStability(floors, springs);
   if (!stability.ok) throw new SpecimenError([stability.message]);
-  return { spec, floors, springs, groundFloor, modes, stability };
+  return { spec, floors, springs, groundFloor, modes, stability, tmd };
 }

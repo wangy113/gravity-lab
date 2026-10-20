@@ -43,6 +43,11 @@ export interface SpecimenSpec {
   slab: { thickness: number; mass: number };   // m, kg per floor
   base: BaseSpec;
   stories: StorySpec[];                        // bottom to top
+  /**
+   * A tuned mass damper on the roof: a block on its own soft spring and damper. `massRatio` is
+   * its mass over the building's. The compiler tunes it to the building (Den Hartog's rule).
+   */
+  tmd?: { massRatio: number };
 }
 
 const story = (k: number, dampingRatio: number, yieldDrift: number, ultimateDrift: number, bracing: StorySpec['bracing']): StorySpec => ({
@@ -81,5 +86,6 @@ export function specProblems(s: SpecimenSpec): string[] {
     if (law.kind === 'bilinear' && s.modelVersion !== 2) out.push(`${n} uses the bilinear law, which needs Model 2.`);
   });
   if (s.base.kind === 'rubber' && !(s.base.k > 0 && s.base.moatGap > 0 && s.base.height > 0)) out.push('Isolators need a stiffness, a height and a moat gap.');
+  if (s.tmd && !(s.tmd.massRatio > 0 && s.tmd.massRatio <= 0.1)) out.push('A roof damper must weigh more than nothing and at most 10% of the building.');
   return out;
 }

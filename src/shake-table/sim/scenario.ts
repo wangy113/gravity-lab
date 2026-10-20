@@ -44,6 +44,7 @@ export function runScenario(R: typeof RAPIER_NS, c: ScenarioConfig, opts: SimOpt
   let first: ScenarioOutcome['firstFailure'] = null;
   const track = (): void => {
     for (const s of sim.springs) {
+      if (s.tmd) continue; // the roof damper is not a story
       const st = stories.get(s.label) ?? { label: s.label, maxDriftPct: 0, maxDamage: 0, failed: false };
       if (!s.failed) st.maxDriftPct = Math.max(st.maxDriftPct, s.r * 100);
       st.maxDamage = Math.max(st.maxDamage, s.damage);

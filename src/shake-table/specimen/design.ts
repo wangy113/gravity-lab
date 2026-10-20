@@ -16,6 +16,8 @@ export interface Design {
   frames: FrameChoice[]; // story 1 (bottom) up, one per story
   dampers: boolean[];
   isolated: boolean;
+  /** A tuned mass damper on the roof (older saved designs do not have it). */
+  tmd?: boolean;
 }
 
 /** The challenges. Calibrated with scripts/calibrate-design.ts and pinned by tests/scenarios/design.test.ts. */
@@ -51,16 +53,18 @@ export const FRAMES: Record<FrameChoice, FrameKind> = {
 };
 /** Viscous dampers add damping to a story without making it stiffer. */
 export const DAMPER = { label: 'Dampers', zeta: 0.2, cost: 120 } as const;
+/** A tuned mass damper: a block on the roof, 5% of the building's mass, tuned to its natural beat. */
+export const TMD = { label: 'Tuned mass damper on the roof', massRatio: 0.05, cost: 200 } as const;
 /** The prototype's rubber isolators and moat. */
 export const ISOLATION = { label: 'Base isolation', k: 1.01e5, zeta: 0.25, cost: 450 } as const;
 
 export function startDesign(level: LevelId): Design {
   const n = LEVELS[level].stories;
-  return { level, frames: Array<FrameChoice>(n).fill('light'), dampers: Array<boolean>(n).fill(false), isolated: false };
+  return { level, frames: Array<FrameChoice>(n).fill('light'), dampers: Array<boolean>(n).fill(false), isolated: false, tmd: false };
 }
 
 export function designCost(d: Design): number {
-  return d.frames.reduce((s, f) => s + FRAMES[f].cost, 0) + d.dampers.filter(Boolean).length * DAMPER.cost + (d.isolated ? ISOLATION.cost : 0);
+  return d.frames.reduce((s, f) => s + FRAMES[f].cost, 0) + d.dampers.filter(Boolean).length * DAMPER.cost + (d.isolated ? ISOLATION.cost : 0) + (d.tmd ? TMD.cost : 0);
 }
 
 export function designSpec(d: Design): SpecimenSpec {
@@ -80,6 +84,7 @@ export function designSpec(d: Design): SpecimenSpec {
     plan: { x: 3, z: 3 }, slab: { thickness: ST, mass: M },
     base: d.isolated ? { kind: 'rubber', k: ISOLATION.k, dampingRatio: ISOLATION.zeta, moatGap: ISO_LIMIT, height: ISO_H } : { kind: 'fixed' },
     stories,
+    ...(d.tmd ? { tmd: { massRatio: TMD.massRatio } } : {}),
   };
 }
 
@@ -88,5 +93,5 @@ export function designName(d: Design): string {
   const frames = d.frames.map((f) => FRAMES[f].label.split(' ')[0]!.toLowerCase()).join(', ');
   const damp = d.dampers.map((on, i) => (on ? i + 1 : 0)).filter(Boolean);
   const dampText = damp.length ? ` + dampers on ${damp.length > 1 ? `${damp.slice(0, -1).join(', ')} and ${damp.at(-1)}` : damp[0]}` : '';
-  return `${d.isolated ? 'Isolated: ' : ''}${frames[0]!.toUpperCase()}${frames.slice(1)}${dampText}`;
+  return `${d.isolated ? 'Isolated: ' : ''}${frames[0]!.toUpperCase()}${frames.slice(1)}${dampText}${d.tmd ? ' + roof damper' : ''}`;
 }

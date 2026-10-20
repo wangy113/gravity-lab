@@ -114,3 +114,51 @@ describe('Model 2', { timeout: 60_000 }, () => {
     expect(DT).toBe(1 / 240);
   });
 });
+
+describe('tuned mass damper', { timeout: 120_000 }, () => {
+  /** A Model 2 tower that stays elastic, so only the damper changes the response. */
+  const elastic = (tmd?: number): SpecimenSpec => {
+    const s = tower(3);
+    for (const st of s.stories) st.lateral.law = { kind: 'bilinear', yieldDrift: 0.08, ultimateDrift: 0.12, hardening: 0.05, capacity: 6 };
+    if (tmd) s.tmd = { massRatio: tmd };
+    return s;
+  };
+  /** Peak roof swing in steady shaking at the bare building's first mode. */
+  const peakRoof = (spec: SpecimenSpec, f: number): number => {
+    const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec });
+    sim.setMode('steady'); sim.drive.f = f; sim.drive.g = 0.03; sim.start();
+    let pk = 0;
+    for (let i = 0; i < 240 * 25; i++) { sim.step(); if (sim.simT > 10) pk = Math.max(pk, Math.abs(sim.roofSwing())); }
+    sim.world.free();
+    return pk;
+  };
+
+  it('is tuned just below the first mode, which splits around it', () => {
+    const bare = compileSpecimen(elastic()), damped = compileSpecimen(elastic(0.05));
+    const f1 = bare.modes[0]!;
+    // tuned to the building as built, whose P-Delta includes the block's weight: within 0.5%
+    expect(Math.abs(damped.tmd!.hz / (f1 / 1.05) - 1)).toBeLessThan(0.005);
+    expect(damped.tmd!.zeta).toBeCloseTo(Math.sqrt((3 * 0.05) / (8 * 1.05 ** 3)), 6);
+    expect(damped.modes[0]!).toBeLessThan(f1);
+    expect(damped.modes[1]!).toBeGreaterThan(f1);
+  });
+
+  it('cuts the roof swing at resonance by more than half', () => {
+    const f1 = compileSpecimen(elastic()).modes[0]!;
+    const without = peakRoof(elastic(), f1), withTmd = peakRoof(elastic(0.05), f1);
+    expect(withTmd).toBeLessThan(without * 0.5);
+  });
+
+  it('sits still on the roof at rest, and is not a building level', () => {
+    const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec: elastic(0.05) });
+    expect(sim.levels).toHaveLength(3);
+    const block = sim.tmdBlock!;
+    for (let i = 0; i < 240 * 3; i++) sim.step();
+    const p0 = { ...block.body.translation() };
+    for (let i = 0; i < 240 * 5; i++) sim.step();
+    const p = block.body.translation();
+    expect(Math.hypot(p.x - p0.x, p.y - p0.y, p.z - p0.z)).toBeLessThan(0.002);
+    expect(p.y).toBeGreaterThan(sim.levels[2]!.body.translation().y + 0.3); // above the roof
+    sim.world.free();
+  });
+});

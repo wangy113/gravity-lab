@@ -14,8 +14,8 @@ beforeAll(async () => {
 
 const FRAME: Record<string, FrameChoice> = { L: 'light', H: 'heavy', B: 'braced' };
 /** "HHL" is heavy, heavy, light from the ground up. Dampers by story number. */
-const design = (level: LevelId, frames: string, dampers: number[] = [], isolated = false): Design => ({
-  level, frames: [...frames].map((c) => FRAME[c]!), dampers: [...frames].map((_, i) => dampers.includes(i + 1)), isolated,
+const design = (level: LevelId, frames: string, dampers: number[] = [], isolated = false, tmd = false): Design => ({
+  level, frames: [...frames].map((c) => FRAME[c]!), dampers: [...frames].map((_, i) => dampers.includes(i + 1)), isolated, tmd,
 });
 const test = (d: Design): { survived: boolean; maxDriftPct: number; cost: number } => {
   const L = LEVELS[d.level];
@@ -54,6 +54,13 @@ describe('design challenge, level 2', { timeout: 120_000 }, () => {
     expect(r.survived).toBe(true);
     expect(r.maxDriftPct).toBeGreaterThan(LEVELS[2].maxDriftPct!);
     expect(meetsLevel(2, r)).toBe(false);
+  });
+
+  it('a roof damper cuts the drift of a tower that stays mostly springy, enough to meet the limit', () => {
+    const plain = test(design(2, 'HHHLL')), damped = test(design(2, 'HHHLL', [], false, true));
+    expect(meetsLevel(2, plain)).toBe(false); // 5.6% drift in story 4
+    expect(damped.maxDriftPct).toBeLessThan(plain.maxDriftPct / 2);
+    expect(meetsLevel(2, damped)).toBe(true);
   });
 
   it('can be won within the budget by spreading the stiffness up the tower', () => {

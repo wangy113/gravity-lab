@@ -300,6 +300,16 @@ export class LabView {
         v = h.x === 1.5 && h.y === 0.1 && h.z === 1.5 ? mesh(this.geo.slab!, M.slab) : mesh(tiledBox(h.x * 2, h.y * 2, h.z * 2, 1.5), M.slab);
         break;
       }
+      case 'tmd': {
+        // the roof damper: a painted steel block with a yellow and black band
+        const g = new THREE.Group();
+        const h = s.half;
+        g.add(mesh(new THREE.BoxGeometry(h.x * 2, h.y * 2, h.z * 2), M.steel));
+        const band = mesh(new THREE.BoxGeometry(h.x * 2 + 0.01, h.y * 0.5, h.z * 2 + 0.01), M.hazard(h.x * 8), false, false);
+        g.add(band);
+        v = g;
+        break;
+      }
       case 'block': v = mesh(tiledBox(s.w, s.h, s.d, 0.7, s.uv), M.blocks[s.tint]!); break;
       case 'prop': v = this.propView(s.prop); break;
       case 'member-piece': {

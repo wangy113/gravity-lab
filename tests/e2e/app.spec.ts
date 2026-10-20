@@ -181,6 +181,10 @@ test('the design challenge builds, tests and files a design in the notebook', as
   await expect(page.locator('#designPanel .story-row')).toHaveCount(5);
   await expect(page.locator('#dGoal')).toContainText('no story drifting more than 2.5%');
   expect(await page.evaluate(() => (window as any).__lab.lab.sim.levels.length)).toBe(5);
+  // The roof damper: +200 credits, and a block on the roof that is not a building level.
+  await page.check('#tmdBox');
+  await expect(page.locator('#dCost')).toHaveText('700 of 1000 credits');
+  expect(await page.evaluate(() => { const sim = (window as any).__lab.lab.sim; return [sim.levels.length, sim.tmdBlock !== null]; })).toEqual([5, true]);
   await page.click('#notebookBtn');
   await expect(page.locator('#nbDesigns')).toContainText('Heavy, heavy, light');
 });
