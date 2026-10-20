@@ -3,18 +3,31 @@ import { lcg } from '../../core/sim/rng.ts';
 export const QUAKE_SEED = 20261012;
 
 /**
+ * Where a quake puts its energy: components are drawn from `from` to `from + span` Hz and
+ * weighted around `center` (Gaussian width `width`). The prototype's is the standard one.
+ */
+export interface QuakeProfile { from: number; span: number; center: number; width: number }
+export const QUAKES = {
+  standard: { from: 0.7, span: 2.5, center: 1.25, width: 0.4 },
+  /** Slower swings, which tall flexible buildings feel most. */
+  slow: { from: 0.35, span: 1.6, center: 0.75, width: 0.3 },
+} as const satisfies Record<string, QuakeProfile>;
+export type QuakeKind = keyof typeof QUAKES;
+
+/**
  * The prototype's synthetic quake: 20 sine components weighted around 1.25 Hz under a
  * build-up, strong-motion and decay envelope, 24 s long, scaled to the requested peak
  * acceleration and clipped to the table stroke. Returns table displacement per step, m.
+ * Other profiles draw the same random numbers, so the standard quake is unchanged.
  */
-export function makeQuake(peakG: number, dt: number, stroke: number, seed = QUAKE_SEED): Float32Array {
+export function makeQuake(peakG: number, dt: number, stroke: number, seed = QUAKE_SEED, profile: QuakeProfile = QUAKES.standard): Float32Array {
   const N = Math.round(24 / dt);
   const xs = new Float32Array(N);
   const r = lcg(seed);
   const comps: [number, number, number][] = [];
   for (let i = 0; i < 20; i++) {
-    const f = 0.7 + 2.5 * r();
-    const w = Math.exp(-Math.pow((f - 1.25) / 0.4, 2)) + 0.08;
+    const f = profile.from + profile.span * r();
+    const w = Math.exp(-Math.pow((f - profile.center) / profile.width, 2)) + 0.08;
     const om = 2 * Math.PI * f;
     comps.push([om, (w * (0.6 + 0.4 * r())) / (om * om), r() * Math.PI * 2]);
   }

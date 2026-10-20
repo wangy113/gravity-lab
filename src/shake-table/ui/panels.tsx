@@ -1,6 +1,7 @@
 /** The guided lab panel, notebook, instructor and help pages, camera controls and effects. */
 import { useEffect, useRef } from 'preact/hooks';
-import { bestDesign, describeResult } from '../notebook.ts';
+import { attemptLevel, bestDesign, describeResult } from '../notebook.ts';
+import { LEVELS, type LevelId } from '../specimen/design.ts';
 import { OBJECTIVES, POE, POE_STEPS } from '../pedagogy.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
 import { TIERS } from '../../core/render/quality.ts';
@@ -136,11 +137,20 @@ export function NotebookDialog({ ctl }: Ctl) {
       {n.designs.length > 0 && (
         <section class="nbtest" id="nbDesigns">
           <h2>Design challenge</h2>
-          <p><b>Best design:</b> {bestDesign(n) ? `${bestDesign(n)!.name}, ${bestDesign(n)!.cost} credits` : 'none survived within the budget yet'}</p>
-          <table class="runs">
-            <thead><tr><th>Design</th><th>Cost</th><th>Predicted</th><th>Result</th><th>Largest drift</th></tr></thead>
-            <tbody>{n.designs.map((a) => <tr><td>{a.name}</td><td>{a.cost}</td><td>{a.prediction ?? 'none'}</td><td>{a.survived ? 'survived' : a.failure}</td><td>{a.maxDriftPct.toFixed(1)}%</td></tr>)}</tbody>
-          </table>
+          {([1, 2] as LevelId[]).map((level) => {
+            const tries = n.designs.filter((a) => attemptLevel(a) === level), best = bestDesign(n, level);
+            if (!tries.length) return null;
+            return (
+              <>
+                <h3>Level {level}. {LEVELS[level].title}</h3>
+                <p><b>Best design:</b> {best ? `${best.name}, ${best.cost} credits` : 'none survived within the budget yet'}</p>
+                <table class="runs">
+                  <thead><tr><th>Design</th><th>Cost</th><th>Predicted</th><th>Result</th><th>Largest drift</th><th>Lasting lean</th></tr></thead>
+                  <tbody>{tries.map((a) => <tr><td>{a.name}</td><td>{a.cost}</td><td>{a.prediction ?? 'none'}</td><td>{a.survived ? 'survived' : a.failure}</td><td>{a.maxDriftPct.toFixed(1)}%</td><td>{a.survived && a.residualPct !== undefined ? `${a.residualPct.toFixed(1)}%` : ''}</td></tr>)}</tbody>
+                </table>
+              </>
+            );
+          })}
           {n.designExplanation && <p class="ans">{n.designExplanation}</p>}
         </section>
       )}
@@ -191,7 +201,7 @@ export function InstructorsDialog({ ctl }: Ctl) {
       <p>The six tests build on each other: what a shake table does, resonance, why frequency matters as much as strength, stiffness, base isolation, and finally nonstructural hazards. Each fact is tagged <span class="tag real">Real world</span> or <span class="tag model">Model</span>, so students also learn what a scientific model can and cannot tell them.</p>
 
       <h2>Design challenge</h2>
-      <p>After the guided tests, students apply what they learned as engineers do: they design a three-story building on a budget of 600 credits that must survive a 0.4 g quake. They choose a light, heavy or braced frame for each story, add dampers or base isolation, predict, test and improve. Each failure unlocks an engineering hint. Every attempt goes into the notebook with its cost, prediction, result and largest drift, so the report shows the design process and not only the final answer.</p>
+      <p>After the guided tests, students apply what they learned as engineers do. In level 1 they design a three-story building for 600 credits that must survive a 0.4 g quake. In level 2 they design a five-story tower for 1000 credits that must survive a stronger, slower quake with no story drifting more than 2.5%, so standing is not enough. They choose a light, heavy or braced frame for each story, add dampers or base isolation, predict, test and improve. Each failure unlocks an engineering hint. Every attempt goes into the notebook with its cost, prediction, result, largest drift and any lasting lean, so the report shows the design process and not only the final answer.</p>
       <p>It rewards understanding over guessing. The cheapest designs that survive avoid a weak story above a strong one, and the one-click answer, base isolation, is over budget. Good discussion prompts: why did a braced ground story make things worse, and when are dampers worth their cost?</p>
 
       <h2>Running it in an online course</h2>

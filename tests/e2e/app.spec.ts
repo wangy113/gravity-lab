@@ -173,8 +173,14 @@ test('the design challenge builds, tests and files a design in the notebook', as
   await expect(page.locator('#dTest')).toBeDisabled(); // predict first
   await page.getByLabel('It will survive').check();
   await page.click('#dTest');
-  await expect(page.locator('#dResult')).toContainText('Survived. 460 credits.', { timeout: 120_000 });
+  await expect(page.locator('#dResult')).toContainText('Challenge met. 460 credits.', { timeout: 120_000 });
   await expect(page.locator('#dBest')).toContainText('Heavy, heavy, light, 460 credits');
+  // Level 2: a five-story tower with a drift limit, built on the table at once.
+  await page.click('#segLevel button[data-v="2"]');
+  await expect(page.locator('#dCost')).toHaveText('500 of 1000 credits');
+  await expect(page.locator('#designPanel .story-row')).toHaveCount(5);
+  await expect(page.locator('#dGoal')).toContainText('no story drifting more than 2.5%');
+  expect(await page.evaluate(() => (window as any).__lab.lab.sim.levels.length)).toBe(5);
   await page.click('#notebookBtn');
   await expect(page.locator('#nbDesigns')).toContainText('Heavy, heavy, light');
 });

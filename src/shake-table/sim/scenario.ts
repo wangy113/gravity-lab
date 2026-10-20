@@ -1,5 +1,6 @@
 import type RAPIER_NS from '@dimforge/rapier3d-deterministic-compat';
 import type { BuildingType } from '../constants.ts';
+import type { QuakeKind } from '../motion/quake.ts';
 import type { ShakeMode } from '../motion/table.ts';
 import type { SpecimenSpec } from '../specimen/spec.ts';
 import { ShakeTableSim, type SimOptions } from './simulation.ts';
@@ -9,6 +10,8 @@ export interface ScenarioConfig {
   /** The design to test when `type` is 'custom'. */
   spec?: SpecimenSpec;
   mode: ShakeMode;
+  /** Which synthetic quake (quake mode only). */
+  quake?: QuakeKind;
   f?: number;
   g: number;
   /** Steady shaking never ends by itself, so it is stopped after this many seconds. */
@@ -32,6 +35,7 @@ export interface ScenarioOutcome {
 export function runScenario(R: typeof RAPIER_NS, c: ScenarioConfig, opts: SimOptions = {}): ScenarioOutcome {
   const sim = new ShakeTableSim(R, { ...opts, type: c.type, ...(c.spec ? { spec: c.spec } : {}) });
   sim.setMode(c.mode);
+  if (c.quake) sim.drive.quakeKind = c.quake;
   if (c.f !== undefined) sim.drive.f = c.f;
   sim.drive.g = c.g;
   for (let i = 0; i < Math.round(0.7 * 240); i++) sim.step();

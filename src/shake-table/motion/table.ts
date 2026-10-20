@@ -1,5 +1,5 @@
 import { DT, STROKE } from '../constants.ts';
-import { makeQuake } from './quake.ts';
+import { makeQuake, QUAKE_SEED, QUAKES, type QuakeKind } from './quake.ts';
 
 export type ShakeMode = 'steady' | 'sweep' | 'quake';
 
@@ -28,6 +28,8 @@ export class TableDrive {
   fNow = 0; // current drive frequency, Hz (0 in quake mode)
   accG = 0; // |table acceleration|, g
   quake: Float32Array | null = null;
+  /** Which synthetic quake to play: the prototype's, or the slower one for tall buildings. */
+  quakeKind: QuakeKind = 'standard';
 
   reset(): void {
     this.on = false; this.done = false; this.t = 0; this.n = 0; this.env = 0; this.target = 0; this.phase = 0;
@@ -36,7 +38,7 @@ export class TableDrive {
 
   start(): void {
     this.on = true; this.t = 0; this.n = 0; this.env = this.mode === 'quake' ? 1 : 0; this.target = 1; this.phase = 0; this.done = false;
-    if (this.mode === 'quake') this.quake = makeQuake(this.g, DT, STROKE);
+    if (this.mode === 'quake') this.quake = makeQuake(this.g, DT, STROKE, QUAKE_SEED, QUAKES[this.quakeKind]);
   }
 
   stop(): void {

@@ -566,10 +566,13 @@ export class LabView {
     this.camera.position.copy(this.controls.target).add(off.setLength(len));
   }
 
-  resetView(): void {
+  /** The default orbit view, framed for a building of `stories` stories (3 is the prototype's view). */
+  resetView(stories = 3): void {
     this.toOrbit();
-    this.camera.position.set(12.5, 3.3, 14.5);
-    this.controls.target.set(-0.3, 2.7, 0);
+    const k = Math.max(1, stories / 3); // taller buildings: look higher and step back
+    this.camera.position.set(-0.3 + 12.8 * k, 3.3 + 1.6 * (k - 1) * 3, 14.5 * k);
+    this.controls.target.set(-0.3, 2.7 + 2.0 * (stories - 3) * 0.5, 0);
+    this.dirty = true;
   }
 
   private toOrbit(): void {

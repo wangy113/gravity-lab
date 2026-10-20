@@ -81,6 +81,22 @@ describe('Model 2', { timeout: 60_000 }, () => {
     expect(withPD.modes[0]!).toBeLessThan(frameOnly * 0.98);
   });
 
+  it('when a story wears out, the floors above come down (broken columns do not prop them up)', () => {
+    // Steady shaking near resonance wears the ground story out at a small drift.
+    const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec: tower(3) });
+    const y0 = sim.levels.map((o) => o.body.translation().y);
+    sim.setMode('steady'); sim.drive.f = 1.1; sim.drive.g = 0.15; sim.start();
+    for (let i = 0; i < 240 * 20 && !sim.anyFailed; i++) sim.step();
+    expect(sim.anyFailed).toBe(true);
+    const failed = sim.springs.findIndex((s) => s.failed);
+    sim.stop();
+    for (let i = 0; i < 240 * 6; i++) sim.step();
+    // the floor the failed story held up has dropped by most of a story height
+    const drop = y0[failed]! - sim.levels[failed]!.body.translation().y;
+    expect(drop).toBeGreaterThan(1.0);
+    sim.world.free();
+  });
+
   it('a yielded story keeps a permanent lean after the shaking stops', () => {
     const lean = (spec: SpecimenSpec): { failed: boolean; residual: number } => {
       const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec });

@@ -3,7 +3,7 @@
  * browser only (no accounts), and downloadable as a printable lab report.
  */
 import { OBJECTIVES, POE } from './pedagogy.ts';
-import { CHALLENGE, type Design } from './specimen/design.ts';
+import { LEVELS, meetsLevel, type Design, type LevelId } from './specimen/design.ts';
 import { STOPS } from './tour.ts';
 
 export interface RunResult {
@@ -35,6 +35,8 @@ export interface DesignAttempt {
   prediction: 'survive' | 'collapse' | null;
   survived: boolean;
   maxDriftPct: number; // largest story drift before any failure
+  /** Largest permanent lean after the test, drift ratio in percent (Model 2 designs). */
+  residualPct?: number;
   failure: string; // empty when nothing failed
 }
 
@@ -46,9 +48,18 @@ export interface Notebook {
   designExplanation: string;
 }
 
-/** The cheapest design that survived within the budget, if any. */
-export function bestDesign(n: Notebook): DesignAttempt | null {
-  return n.designs.filter((a) => a.survived && a.cost <= CHALLENGE.budget).sort((a, b) => a.cost - b.cost)[0] ?? null;
+/** The level an attempt belongs to (attempts saved before levels existed were level 1). */
+export const attemptLevel = (a: DesignAttempt): LevelId => a.design.level ?? 1;
+
+/** The cheapest design that met a level (survived, drift limit, budget), if any. */
+export function bestDesign(n: Notebook, level: LevelId): DesignAttempt | null {
+  return n.designs.filter((a) => attemptLevel(a) === level && meetsLevel(level, a)).sort((a, b) => a.cost - b.cost)[0] ?? null;
+}
+
+/** The level's goal in one sentence. */
+export function levelGoal(level: LevelId): string {
+  const L = LEVELS[level];
+  return `a ${L.stories}-story building that survives a ${L.g} g quake${L.maxDriftPct !== null ? ` with no story drifting more than ${L.maxDriftPct}%` : ''}, for ${L.budget} credits or less`;
 }
 
 const KEY = 'shake-table-lab.notebook.v1';
@@ -109,13 +120,17 @@ export function reportHtml(n: Notebook): string {
         .map((r) => `<tr><td>${esc(r.building)}</td><td>${esc(r.shaking)} ${r.strength.toFixed(2)} g${r.frequency ? ` ${r.frequency.toFixed(2)} Hz` : ''}</td><td>${r.peakRoofCm.toFixed(0)} cm</td><td>${esc(r.failure || 'none')}</td></tr>`)
         .join('')}</table></section>`
     : '';
-  const best = bestDesign(n);
-  const designs = n.designs.length
-    ? `<section><h2>Design challenge</h2><p class="obj"><b>Goal:</b> design a building that survives a ${CHALLENGE.g} g quake for ${CHALLENGE.budget} credits or less.</p>
+  const levelSection = (level: LevelId): string => {
+    const L = LEVELS[level], tries = n.designs.filter((a) => attemptLevel(a) === level), best = bestDesign(n, level);
+    if (!tries.length) return '';
+    return `<h3>Level ${level}. ${esc(L.title)}</h3><p class="obj"><b>Goal:</b> ${esc(levelGoal(level))}.</p>
 <p><b>Best design:</b> ${best ? `${esc(best.name)}, ${best.cost} credits` : '<em>none survived within the budget yet</em>'}</p>
-<table><tr><th>Design</th><th>Cost</th><th>Predicted</th><th>Result</th><th>Largest drift</th></tr>${n.designs
-        .map((a) => `<tr><td>${esc(a.name)}</td><td>${a.cost}</td><td>${a.prediction ?? 'none'}</td><td>${a.survived ? 'survived' : esc(a.failure)}</td><td>${a.maxDriftPct.toFixed(1)}%</td></tr>`)
-        .join('')}</table>
+<table><tr><th>Design</th><th>Cost</th><th>Predicted</th><th>Result</th><th>Largest drift</th><th>Lasting lean</th></tr>${tries
+        .map((a) => `<tr><td>${esc(a.name)}</td><td>${a.cost}</td><td>${a.prediction ?? 'none'}</td><td>${a.survived ? 'survived' : esc(a.failure)}</td><td>${a.maxDriftPct.toFixed(1)}%</td><td>${a.survived && a.residualPct !== undefined ? `${a.residualPct.toFixed(1)}%` : ''}</td></tr>`)
+        .join('')}</table>`;
+  };
+  const designs = n.designs.length
+    ? `<section><h2>Design challenge</h2>${levelSection(1)}${levelSection(2)}
 <h3>Explain</h3><p class="q">What made your best design work, and what did a failed design teach you?</p><div class="ans">${n.designExplanation ? esc(n.designExplanation).replace(/\n/g, '<br>') : '<em>No explanation yet</em>'}</div></section>`
     : '';
   const done = n.tests.filter((t) => t.result).length;

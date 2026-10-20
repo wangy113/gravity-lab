@@ -3,7 +3,7 @@ import type { Tier, TierChoice } from '../../core/render/quality.ts';
 import type { BuildingType } from '../constants.ts';
 import type { ShakeMode } from '../motion/table.ts';
 import { loadNotebook, type Notebook } from '../notebook.ts';
-import { START_DESIGN, type Design } from '../specimen/design.ts';
+import { startDesign, type Design } from '../specimen/design.ts';
 import type { CameraMode } from '../scene/view.ts';
 
 export type DialogName = 'intro' | 'text' | 'about' | 'help' | 'notebook' | 'instructors';
@@ -55,7 +55,7 @@ export const ui = {
   announce: signal(''),
   stop: signal<number | null>(null), // open guided test, or null
   design: signal(false), // design challenge open
-  draft: signal<Design>(structuredClone(START_DESIGN)),
+  draft: signal<Design>(startDesign(1)),
   designPrediction: signal<'survive' | 'collapse' | null>(null),
   poeStage: signal(0), // 0 Predict, 1 Test, 2 Observe, 3 Explain
   dialog: signal<DialogName | null>(null),

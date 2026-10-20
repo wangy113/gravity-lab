@@ -389,6 +389,16 @@ export class ShakeTableSim {
     const dl = Math.hypot(dx, dz) || 1;
     const dir = { x: dx / dl, z: dz / dl };
     const story = s.index;
+    // Model 2 stories can wear out at a small drift, with the floor nearly still. Broken
+    // columns spawned upright under it would hold it up like props, so for Model 2 the
+    // pieces are a little shorter and thrown outward, and the floor is pushed the way it
+    // leans (a random way if it barely leans). Model 1 keeps the prototype's behavior.
+    const m2 = s.bilinear !== null;
+    const centre = s.b.body.translation();
+    if (m2) {
+      if (Math.hypot(dx, dz) < 0.01) { const a = rand() * Math.PI * 2; dir.x = Math.cos(a); dir.z = Math.sin(a); }
+      s.b.body.setLinvel({ x: vb.x + dir.x * 1.2, y: vb.y, z: vb.z + dir.z * 1.2 }, true);
+    }
     for (const m of s.members) {
       const [a, b] = this.memberEnds(s, m);
       const L = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
@@ -398,11 +408,17 @@ export class ShakeTableSim {
       const isCol = m.kind === 'col';
       const parts = isCol ? 2 : 1, w = isCol ? 0.2 : 0.07;
       for (let p = 0; p < parts; p++) {
-        const off = parts === 2 ? (p === 0 ? -L / 4 : L / 4) : 0, len = L / parts;
+        const off = parts === 2 ? (p === 0 ? -L / 4 : L / 4) : 0, len = (L / parts) * (m2 ? 0.8 : 1);
         const body = this.dynBody(mid.x + axis.x * off, mid.y + axis.y * off, mid.z + axis.z * off, q, true);
         this.world.createCollider(R.ColliderDesc.cuboid(w / 2, len / 2, w / 2).setMass(isCol ? 90 : 30).setFriction(0.6), body);
         const kick = (p === 0 ? 1 : -1) * 1.8;
-        body.setLinvel({ x: vel.x + dir.x * kick + (rand() - 0.5), y: vel.y, z: vel.z + dir.z * kick + (rand() - 0.5) }, true);
+        if (m2) {
+          // outward from the middle of the floor plan
+          const ox = mid.x - centre.x, oz = mid.z - centre.z, ol = Math.hypot(ox, oz) || 1;
+          body.setLinvel({ x: vel.x + (ox / ol) * 2 + dir.x * kick * 0.5 + (rand() - 0.5), y: vel.y, z: vel.z + (oz / ol) * 2 + dir.z * kick * 0.5 + (rand() - 0.5) }, true);
+        } else {
+          body.setLinvel({ x: vel.x + dir.x * kick + (rand() - 0.5), y: vel.y, z: vel.z + dir.z * kick + (rand() - 0.5) }, true);
+        }
         body.setAngvel({ x: (rand() - 0.5) * 5, y: (rand() - 0.5) * 2, z: (rand() - 0.5) * 5 }, true);
         this.register(body, 90, 'piece', { type: 'member-piece', member: isCol ? 'col' : 'brace', len, story });
       }

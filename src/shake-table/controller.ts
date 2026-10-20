@@ -7,7 +7,7 @@ import type { BuildingType } from './constants.ts';
 import { guessTier, lowerTier, saveChoice, TIERS, type TierChoice } from '../core/render/quality.ts';
 import { CHART_SECONDS, SPRING_FIELDS, type Lab } from './lab.ts';
 import { downloadReport, emptyNotebook, saveNotebook, type DesignAttempt, type Notebook, type RunResult } from './notebook.ts';
-import { CHALLENGE, designCost, designName, designSpec, type Design } from './specimen/design.ts';
+import { designCost, designName, designSpec, LEVELS, startDesign, type Design, type LevelId } from './specimen/design.ts';
 import type { ShakeMode } from './motion/table.ts';
 import type { CameraMode, LabView } from './scene/view.ts';
 import { STOPS } from './tour.ts';
@@ -272,6 +272,15 @@ export class Controller {
     this.buildDraft();
   }
 
+  /** Switches challenge level: a fresh draft with that level's number of stories. */
+  setLevel(level: LevelId): void {
+    if (ui.draft.value.level === level) return;
+    ui.draft.value = startDesign(level);
+    ui.designPrediction.value = null;
+    this.buildDraft();
+    this.resetView(); // frame the new height
+  }
+
   /** Changes the draft and rebuilds it on the table, so students see each choice at once. */
   editDraft(fn: (d: Design) => void): void {
     const d = structuredClone(ui.draft.value);
@@ -297,7 +306,7 @@ export class Controller {
   /** Tests the draft against the challenge quake, after 0.7 s of settling like a guided test. */
   testDesign(): void {
     this.setMode('quake');
-    this.setG(CHALLENGE.g);
+    this.setG(LEVELS[ui.draft.value.level].g);
     this.setStress(true);
     this.buildDraft();
     this.setCamera('orbit');
@@ -328,9 +337,10 @@ export class Controller {
     this.view.zoomBy(factor);
   }
 
+  /** Back to the default view, framed for the building on the table. */
   resetView(): void {
     ui.cam.value = 'orbit';
-    this.view.resetView();
+    this.view.resetView(this.lab.sim.springs.filter((s) => !s.iso).length);
   }
 
   private onKey(e: KeyboardEvent): void {
@@ -444,6 +454,7 @@ export class Controller {
       const a: DesignAttempt = {
         at: r.at, name: designName(run.design), design: run.design, cost: designCost(run.design), prediction: run.prediction,
         survived: !sim.anyFailed, maxDriftPct: run.maxDrift * 100, failure: sim.failNote,
+        residualPct: Math.max(0, ...sim.springs.filter((s) => !s.iso).map((s) => sim.residualDrift(s))) * 100,
       };
       this.updateNotebook((n) => { n.designs.push(a); n.designs = n.designs.slice(-30); });
       ui.designPrediction.value = null;
