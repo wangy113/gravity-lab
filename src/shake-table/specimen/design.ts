@@ -9,7 +9,7 @@ import { CH, ISO_H, ISO_LIMIT, M, ST } from '../constants.ts';
 import type { QuakeKind } from '../motion/quake.ts';
 import type { SpecimenSpec, StorySpec } from './spec.ts';
 
-export type FrameChoice = 'light' | 'heavy' | 'braced';
+export type FrameChoice = 'light' | 'heavy' | 'braced' | 'oneside';
 export type LevelId = 1 | 2;
 export interface Design {
   level: LevelId;
@@ -40,16 +40,21 @@ export function meetsLevel(level: LevelId, r: { survived: boolean; maxDriftPct: 
 }
 
 interface FrameKind {
-  label: string; k: number; zeta: number; cost: number;
+  label: string; short: string; k: number; zeta: number; cost: number;
   yieldDrift: number; ultimateDrift: number; hardening: number; capacity: number;
   bracing: StorySpec['bracing']; columnSize: number;
+  /** Share of the x stiffness on the +z face (0.5 is balanced). */
+  xShare: number;
 }
 export const FRAMES: Record<FrameChoice, FrameKind> = {
   // Moment frames bend a long way before they break. Braced frames are about six times
   // stiffer but yield sooner and wear out faster once the braces start to buckle.
-  light: { label: 'Light frame', k: 1.14e6, zeta: 0.02, cost: 100, yieldDrift: 0.02, ultimateDrift: 0.06, hardening: 0.05, capacity: 6, bracing: 'none', columnSize: 0.2 },
-  heavy: { label: 'Heavy frame', k: 2.85e6, zeta: 0.03, cost: 180, yieldDrift: 0.02, ultimateDrift: 0.06, hardening: 0.05, capacity: 6, bracing: 'none', columnSize: 0.32 },
-  braced: { label: 'Braced frame', k: 6.84e6, zeta: 0.05, cost: 260, yieldDrift: 0.01, ultimateDrift: 0.04, hardening: 0.03, capacity: 3, bracing: 'x', columnSize: 0.2 },
+  light: { label: 'Light frame', short: 'Light', k: 1.14e6, zeta: 0.02, cost: 100, yieldDrift: 0.02, ultimateDrift: 0.06, hardening: 0.05, capacity: 6, bracing: 'none', columnSize: 0.2, xShare: 0.5 },
+  heavy: { label: 'Heavy frame', short: 'Heavy', k: 2.85e6, zeta: 0.03, cost: 180, yieldDrift: 0.02, ultimateDrift: 0.06, hardening: 0.05, capacity: 6, bracing: 'none', columnSize: 0.32, xShare: 0.5 },
+  braced: { label: 'Braced frame', short: 'Braced', k: 6.84e6, zeta: 0.05, cost: 260, yieldDrift: 0.01, ultimateDrift: 0.04, hardening: 0.03, capacity: 3, bracing: 'x', columnSize: 0.2, xShare: 0.5 },
+  // One braced face and one light frame: as stiff overall as a heavy frame and the same price,
+  // but lopsided, so it twists. The light side drifts most and fails first.
+  oneside: { label: 'Braced on one side', short: 'One side', k: (1.14e6 + 6.84e6) / 2, zeta: 0.035, cost: 180, yieldDrift: 0.015, ultimateDrift: 0.05, hardening: 0.04, capacity: 4, bracing: 'one-side', columnSize: 0.2, xShare: 6.84 / (1.14 + 6.84) },
 };
 /** Viscous dampers add damping to a story without making it stiffer. */
 export const DAMPER = { label: 'Dampers', zeta: 0.2, cost: 120 } as const;
@@ -74,6 +79,7 @@ export function designSpec(d: Design): SpecimenSpec {
       columnHeight: CH,
       dampingRatio: F.zeta + (d.dampers[i] ? DAMPER.zeta : 0),
       bracing: F.bracing,
+      xShare: F.xShare,
       columnSize: F.columnSize,
       dampers: d.dampers[i],
       lateral: { kind: 'story', k: F.k, law: { kind: 'bilinear', yieldDrift: F.yieldDrift, ultimateDrift: F.ultimateDrift, hardening: F.hardening, capacity: F.capacity } },
@@ -90,7 +96,7 @@ export function designSpec(d: Design): SpecimenSpec {
 
 /** A short name for notebooks and tables, for example "Braced, heavy, light + dampers on 1". */
 export function designName(d: Design): string {
-  const frames = d.frames.map((f) => FRAMES[f].label.split(' ')[0]!.toLowerCase()).join(', ');
+  const frames = d.frames.map((f) => FRAMES[f].short.toLowerCase()).join(', ');
   const damp = d.dampers.map((on, i) => (on ? i + 1 : 0)).filter(Boolean);
   const dampText = damp.length ? ` + dampers on ${damp.length > 1 ? `${damp.slice(0, -1).join(', ')} and ${damp.at(-1)}` : damp[0]}` : '';
   return `${d.isolated ? 'Isolated: ' : ''}${frames[0]!.toUpperCase()}${frames.slice(1)}${dampText}${d.tmd ? ' + roof damper' : ''}`;

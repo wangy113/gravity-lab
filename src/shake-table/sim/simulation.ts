@@ -11,7 +11,7 @@ import { lcg, type Rng } from '../../core/sim/rng.ts';
 import { DT, RIM, STORY, TOP, TX, TZ, X0, type BuildingType } from '../constants.ts';
 import { propSize, type PropId, type PropSize } from '../contents/props.ts';
 import { compileSpecimen, type CompiledSpecimen, type CompiledSpring, type Member } from '../specimen/compile.ts';
-import { shearBuildingFrequencies } from '../specimen/modal.ts';
+import { coupledFrequencies, shearBuildingFrequencies } from '../specimen/modal.ts';
 import { PRESETS, type SpecimenSpec } from '../specimen/spec.ts';
 import { MOAT_FACTOR } from '../specimen/stability.ts';
 import { TableDrive, type ShakeMode } from '../motion/table.ts';
@@ -52,6 +52,7 @@ export interface Spring {
   moatGap: number; driftHeight: number; // m
   bilinear: { hardening: number; capacity: number } | null;
   pDelta: number; // N/m, weight above over story height (Model 2)
+  torsion: { ecc: number; kt: number; ct: number; cx: number; cz: number } | null;
   ex: number; ez: number; // bilinear law: permanent (plastic) offset, m
   plastic: number; // bilinear law: accumulated yielding, m
   damage: number; failed: boolean;
@@ -199,6 +200,12 @@ export class ShakeTableSim {
   natBeat(): number {
     if (this.anyFailed) return 0;
     const ks = this.springs.map((s) => s.k * (1 - 0.3 * s.damage) - s.pDelta);
+    // Model 2 couples sway with twisting, as the compiler's modal analysis does.
+    if (this.specimen.spec.modelVersion === 2) {
+      const floors = this.specimen.floors;
+      return coupledFrequencies(floors.map((f) => f.mass), floors.map((f) => f.inertiaY),
+        this.springs.map((s, i) => ({ k: ks[i]!, ecc: s.torsion?.ecc ?? 0, kt: s.torsion?.kt ?? s.kr })))[0] ?? 0;
+    }
     return shearBuildingFrequencies(this.springs.map((s) => s.b.mass), ks)[0] ?? 0;
   }
 
@@ -307,6 +314,7 @@ export class ShakeTableSim {
       const rv = rotate(s.rest, qa);
       const dx = pb.x - pa.x - rv.x, dy = pb.y - pa.y - rv.y, dz = pb.z - pa.z - rv.z;
       const va = A.linvel(), vb = B.linvel();
+      if (s.torsion) { this.applyTorsionStory(s, A, B, dx, dy, dz); continue; }
       let fx: number, fz: number;
       if (s.bilinear) {
         [fx, fz] = this.bilinearForce(s, dx, dz);
@@ -347,6 +355,50 @@ export class ShakeTableSim {
         if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);
       }
     }
+  }
+
+  /**
+   * A Model 2 story that can twist. The story's law acts at its centre of rigidity, which sits
+   * `ecc` from the middle along z when one side is stiffer. There a sideways force also twists
+   * the floor, and the frames resist twisting with `kt` about that point. The drift that breaks
+   * the story is judged at its worst corner, so the flexible side of a twisting story fails first.
+   */
+  private applyTorsionStory(s: Spring, A: RigidBody, B: RigidBody, dx: number, dy: number, dz: number): void {
+    const T = s.torsion!;
+    const va = A.linvel(), vb = B.linvel(), wa = A.angvel(), wb = B.angvel();
+    const qr = qmul(B.rotation(), qinv(A.rotation()));
+    if (qr.w < 0) { qr.x = -qr.x; qr.y = -qr.y; qr.z = -qr.z; qr.w = -qr.w; }
+    const sn = Math.hypot(qr.x, qr.y, qr.z);
+    const f = sn > 1e-9 ? (2 * Math.atan2(sn, qr.w)) / sn : 2;
+    const th = qr.y * f; // twist about the vertical axis, rad (a point at z moves by th * z along x)
+    // displacement of the centre of rigidity, where the story's law acts
+    const ux = dx + th * T.ecc, uz = dz;
+    let [fx, fz] = s.bilinear ? this.bilinearForce(s, ux, uz) : [-s.k * (1 - 0.3 * s.damage) * ux, -s.k * (1 - 0.3 * s.damage) * uz];
+    const lx = fx; // the frames' force, which acts at the centre of rigidity
+    fx -= s.c * (vb.x - va.x); fz -= s.c * (vb.z - va.z);
+    if (s.pDelta) { fx += s.pDelta * dx; fz += s.pDelta * dz; }
+    const fy = -s.kv * dy - s.cv * (vb.y - va.y);
+    // drift at the worst corner of the frame lines
+    let worst = 0;
+    for (const cx of [-T.cx, T.cx]) for (const cz of [-T.cz, T.cz]) worst = Math.max(worst, Math.hypot(dx + th * cz, dz - th * cx));
+    s.d = Math.hypot(ux, uz); s.r = worst / s.driftHeight;
+    B.applyImpulse({ x: fx * DT, y: fy * DT, z: fz * DT }, true);
+    if (s.aDyn) A.applyImpulse({ x: -fx * DT, y: -fy * DT, z: -fz * DT }, true);
+    // rocking (about x and z) through the support springs, twisting (about y) through the frames
+    const tx = -s.kr * qr.x * f - s.cr * (wb.x - wa.x);
+    const ty = T.ecc * lx - T.kt * th - T.ct * (wb.y - wa.y);
+    const tz = -s.kr * qr.z * f - s.cr * (wb.z - wa.z);
+    B.applyTorqueImpulse({ x: tx * DT, y: ty * DT, z: tz * DT }, true);
+    if (s.aDyn) A.applyTorqueImpulse({ x: -tx * DT, y: -ty * DT, z: -tz * DT }, true);
+    if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);
+  }
+
+  /** How far a story has twisted, degrees (Model 2). */
+  twistDeg(s: Spring): number {
+    const qr = qmul(s.b.body.rotation(), qinv(s.a.body.rotation()));
+    const sn = Math.hypot(qr.x, qr.y, qr.z);
+    const f = sn > 1e-9 ? (2 * Math.atan2(sn, Math.abs(qr.w))) / sn : 2;
+    return ((qr.w < 0 ? -qr.y : qr.y) * f * 180) / Math.PI;
   }
 
   /**

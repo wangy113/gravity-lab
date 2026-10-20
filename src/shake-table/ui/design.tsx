@@ -9,6 +9,7 @@ import { ui } from './store.ts';
 /** Ideas students unlock by failing, all about this model. */
 const HINTS = [
   'A building fails where it is weakest. If one story is much weaker than the one below it, the bending piles up there. Engineers call it a soft story.',
+  'If one side of a story is much stiffer than the other, shaking makes the building twist, and the flexible side moves far more than the middle. Bracing only one face is as stiff as a heavy frame on paper, but it twists. Keep the stiffness balanced.',
   'A stiffer frame moves less for the same shaking. It also has a faster natural beat, which moves it away from the slow swings of this quake.',
   'Dampers soak up energy like shock absorbers. They help most on a story that is close to failing, but they cannot save a frame that is far too weak.',
   'Lower stories carry the weight of everything above. When a story leans, that weight pushes it further over (the P-Delta effect), so tall buildings need their strength at the bottom.',
@@ -47,7 +48,7 @@ export function DesignPanel({ ctl }: Ctl) {
             <div class="lbl">Story {i + 1}{i === 0 ? ' (ground)' : i === d.frames.length - 1 ? ' (top)' : ''}</div>
             <Seg id={`segStory${i + 1}`} label={`Story ${i + 1} frame`} value={d.frames[i]!}
               onPick={(v: FrameChoice) => ctl.editDraft((x) => { x.frames[i] = v; })}
-              options={(Object.keys(FRAMES) as FrameChoice[]).map((k) => [k, `${FRAMES[k].label.split(' ')[0]} ${FRAMES[k].cost}`])} />
+              options={(Object.keys(FRAMES) as FrameChoice[]).map((k) => [k, `${FRAMES[k].short} ${FRAMES[k].cost}`])} />
             <label class="check"><input type="checkbox" id={`damp${i + 1}`} checked={d.dampers[i]} onChange={(e) => { const on = e.currentTarget.checked; ctl.editDraft((x) => { x.dampers[i] = on; }); }} /> {DAMPER.label} +{DAMPER.cost}</label>
           </div>
         ))}

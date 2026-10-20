@@ -80,3 +80,31 @@ export function shearBuildingFrequencies(masses: readonly number[], stiffnesses:
   if (stiffnesses.length !== masses.length) throw new Error('need one story stiffness per floor');
   return symmetricEigenvalues(chainMatrix(masses, stiffnesses)).map((l) => Math.sqrt(Math.max(0, l)) / (2 * Math.PI));
 }
+
+/**
+ * Model 2: natural frequencies in Hz, lowest first, with sideways sway along x and twisting
+ * about the vertical axis coupled. Each floor has two freedoms (x and twist). Each story is a
+ * stiffness `k` acting at its centre of rigidity, `ecc` from the middle along z, plus a twisting
+ * stiffness `kt` about that point. With `ecc` = 0 sway and twist are independent.
+ */
+export function coupledFrequencies(masses: readonly number[], inertias: readonly number[], stories: readonly { k: number; ecc: number; kt: number }[]): number[] {
+  const n = masses.length;
+  if (inertias.length !== n || stories.length !== n) throw new Error('need one mass, inertia and story per floor');
+  const K: number[][] = Array.from({ length: 2 * n }, () => Array<number>(2 * n).fill(0));
+  const add = (i: number, j: number, v: number): void => { K[i]![j]! += v; };
+  stories.forEach((s, i) => {
+    // relative motion across story i: [x_i - x_{i-1}, twist_i - twist_{i-1}]
+    const ks = [[s.k, s.k * s.ecc], [s.k * s.ecc, s.k * s.ecc * s.ecc + s.kt]];
+    for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
+      add(2 * i + a, 2 * i + b, ks[a]![b]!);
+      if (i > 0) {
+        add(2 * (i - 1) + a, 2 * (i - 1) + b, ks[a]![b]!);
+        add(2 * i + a, 2 * (i - 1) + b, -ks[a]![b]!);
+        add(2 * (i - 1) + a, 2 * i + b, -ks[a]![b]!);
+      }
+    }
+  });
+  const m = Array.from({ length: 2 * n }, (_, d) => (d % 2 === 0 ? masses[d >> 1]! : inertias[d >> 1]!));
+  const A = K.map((row, i) => row.map((v, j) => v / Math.sqrt(m[i]! * m[j]!)));
+  return symmetricEigenvalues(A).map((l) => Math.sqrt(Math.max(0, l)) / (2 * Math.PI));
+}

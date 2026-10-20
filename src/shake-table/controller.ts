@@ -82,6 +82,8 @@ export class Controller {
     const d = this.lab.sim.drive;
     d.f = ui.f.value;
     d.g = ui.g.value;
+    // The design challenge's levels each have their own quake. Everything else uses the standard one.
+    d.quakeKind = ui.design.value && ui.type.value === 'custom' ? LEVELS[ui.draft.value.level].quake : 'standard';
   }
 
   start(): void {

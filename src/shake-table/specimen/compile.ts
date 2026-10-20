@@ -6,7 +6,7 @@
  */
 import type { V3 } from '../../core/sim/math.ts';
 import { TOP, X0 } from '../constants.ts';
-import { shearBuildingFrequencies } from './modal.ts';
+import { coupledFrequencies, shearBuildingFrequencies } from './modal.ts';
 import { specProblems, type SpecimenSpec } from './spec.ts';
 import { checkStability, type StabilityReport } from './stability.ts';
 
@@ -27,6 +27,7 @@ export interface CompiledFloor {
   mass: number;      // kg
   half: { x: number; y: number; z: number }; // half sizes, m
   inertia: number;   // rocking inertia about a horizontal axis, kg m^2
+  inertiaY: number;  // twisting inertia about the vertical axis, kg m^2
 }
 
 export interface CompiledSpring {
@@ -48,6 +49,12 @@ export interface CompiledSpring {
   bilinear: { hardening: number; capacity: number } | null;
   /** P-Delta: the weight above divided by the story height, N/m. It acts as a negative lateral stiffness. 0 in Model 1. */
   pDelta: number;
+  /**
+   * Model 2 stories: twisting. `ecc` is how far the centre of rigidity sits from the middle
+   * along z (m), `kt` and `ct` the twisting stiffness and damping about it, `cx` and `cz` the
+   * frame lines' half spacing (m), used to judge drift at the worst corner. Null otherwise.
+   */
+  torsion: { ecc: number; kt: number; ct: number; cx: number; cz: number } | null;
   members: Member[];
 }
 
@@ -81,6 +88,7 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   const n = spec.stories.length;
   const half = { x: spec.plan.x / 2, y: t / 2, z: spec.plan.z / 2 };
   const inertia = (m * (Math.max(spec.plan.x, spec.plan.z) ** 2 + t * t)) / 12;
+  const inertiaY = (m * (spec.plan.x ** 2 + spec.plan.z ** 2)) / 12;
   // Numerical support springs (vertical and rocking). Model 1 keeps the prototype's: 10 Hz
   // vertical scaled by the number of stories, 8 Hz rocking, both 30% damped. That scaling
   // makes tall buildings unstable (stability.ts). Model 2 fixes them per story, so they stay
@@ -98,7 +106,7 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   const floors: CompiledFloor[] = [];
   const springs: CompiledSpring[] = [];
   const support = { kv, cv, kr, cr };
-  const addFloor = (y: number): number => floors.push({ kind: 'slab', y, mass: m, half, inertia }) - 1;
+  const addFloor = (y: number): number => floors.push({ kind: 'slab', y, mass: m, half, inertia, inertiaY }) - 1;
 
   let lower = -1, lowerTopY = TOP, lowerHalf = TABLE_HALF, lx = X0;
   let groundFloor = TOP;
@@ -111,7 +119,7 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
       label: 'Isolators', lower: -1, upper: b, rest: { x: X0, y: TABLE_HALF + base.height + t / 2, z: 0 },
       k: base.k, c: 2 * base.dampingRatio * Math.sqrt(base.k * totalMass), ...support,
       iso: true, tmd: false, moatGap: base.moatGap, driftHeight: spec.stories[0]!.columnHeight, yieldR: 0, ultR: Infinity,
-      bilinear: null, pDelta: 0, members: [],
+      bilinear: null, pDelta: 0, torsion: null, members: [],
     };
     const B = Math.min(half.x, half.z) - 0.4;
     for (const cx of [-B, B]) for (const cz of [-B, B]) s.members.push({ la: { x: X0 + cx, y: TABLE_HALF, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'bear' });
@@ -133,11 +141,21 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
       iso: false, tmd: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift,
       bilinear: law.kind === 'bilinear' ? { hardening: law.hardening, capacity: law.capacity } : null,
       pDelta: weightAbove(i) / rest.y,
+      torsion: null,
       members: [],
     };
     const Cx = half.x - 0.15, Cz = half.z - 0.15;
+    if (v2) {
+      // Frame lines along x sit at z = +Cz and -Cz and share the story's x stiffness; the lines
+      // along z (at x = +Cx and -Cx) share the z stiffness evenly. The centre of rigidity is
+      // where the x lines balance, and the story twists about it.
+      const share = st.xShare ?? 0.5, k = st.lateral.k;
+      const ecc = Cz * (2 * share - 1);
+      const kt = k * (share * (Cz - ecc) ** 2 + (1 - share) * (Cz + ecc) ** 2) + k * Cx * Cx;
+      s.torsion = { ecc, kt, ct: 2 * st.dampingRatio * Math.sqrt(kt * inertiaY), cx: Cx, cz: Cz };
+    }
     for (const cx of [-Cx, Cx]) for (const cz of [-Cz, Cz]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'col', ...(st.columnSize ? { size: st.columnSize } : {}) });
-    if (st.bracing === 'x') for (const cz of [-Cz, Cz]) {
+    if (st.bracing !== 'none') for (const cz of st.bracing === 'one-side' ? [Cz] : [-Cz, Cz]) {
       s.members.push({ la: { x: rest.x - Cx, y: lh, z: cz }, lb: { x: Cx, y: -t / 2, z: cz }, kind: 'brace' });
       s.members.push({ la: { x: rest.x + Cx, y: lh, z: cz }, lb: { x: -Cx, y: -t / 2, z: cz }, kind: 'brace' });
     }
@@ -148,7 +166,11 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   });
 
   // P-Delta softens each story, so the building swings a little slower than its frame alone.
-  const frequencies = (): number[] => shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k - s.pDelta));
+  // Model 2 couples sway and twisting, so a building stiffer on one side has its own modes.
+  const frequencies = (): number[] => (v2
+    ? coupledFrequencies(floors.map((fl) => fl.mass), floors.map((fl) => fl.inertiaY),
+      springs.map((s) => ({ k: s.k - s.pDelta, ecc: s.torsion?.ecc ?? 0, kt: s.torsion?.kt ?? s.kr })))
+    : shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k - s.pDelta)));
   let tmd: CompiledSpecimen['tmd'] = null;
   if (spec.tmd) {
     // Den Hartog's optimum for a damper on an undamped building: tune just below the first
@@ -161,13 +183,13 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     const tk = tmdMass * Math.pow(2 * Math.PI * hz, 2);
     const tkv = tmdMass * Math.pow(2 * Math.PI * SUPPORT_V2.vertical, 2), tkr = tI * Math.pow(2 * Math.PI * SUPPORT_V2.rocking, 2);
     const restY = t / 2 + gap + bh.y;
-    floors.push({ kind: 'tmd', y: floors[roof]!.y + restY, mass: tmdMass, half: bh, inertia: tI });
+    floors.push({ kind: 'tmd', y: floors[roof]!.y + restY, mass: tmdMass, half: bh, inertia: tI, inertiaY: tI });
     const s: CompiledSpring = {
       label: 'Roof damper', lower: roof, upper: floors.length - 1, rest: { x: 0, y: restY, z: 0 },
       k: tk, c: 2 * zeta * Math.sqrt(tk * tmdMass),
       kv: tkv, cv: 2 * SUPPORT_V2.damping * Math.sqrt(tkv * tmdMass), kr: tkr, cr: 2 * SUPPORT_V2.damping * Math.sqrt(tkr * tI),
       // Its stroke is limited by bumpers 35 cm out, like the isolators' moat, so it stays on the roof.
-      iso: true, tmd: true, moatGap: TMD_STROKE, driftHeight: restY, yieldR: 0, ultR: Infinity, bilinear: null, pDelta: 0, members: [],
+      iso: true, tmd: true, moatGap: TMD_STROKE, driftHeight: restY, yieldR: 0, ultR: Infinity, bilinear: null, pDelta: 0, torsion: null, members: [],
     };
     // the block's bearings and dampers, drawn from the roof to its corners
     for (const cx of [-0.25, 0.25]) for (const cz of [-0.25, 0.25]) s.members.push({ la: { x: cx, y: t / 2, z: cz }, lb: { x: cx, y: -bh.y, z: cz }, kind: 'damper' });

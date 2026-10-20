@@ -8,6 +8,7 @@ import { designCost, designName, designSpec, LEVELS, type Design, type FrameChoi
 await RAPIER.init();
 const level = +(process.argv[2] ?? 1) as LevelId;
 const { stories: n, g, quake } = LEVELS[level];
+// One side braced is compared against the heavy frame in a separate run (quick mode, letter O).
 const F: FrameChoice[] = ['light', 'heavy', 'braced'];
 const rank = (f: FrameChoice): number => F.indexOf(f);
 
@@ -21,7 +22,7 @@ const walk = (s: FrameChoice[]): void => {
 walk([]);
 if (level === 2) seqs.push(['braced', 'braced', 'light', 'braced', 'braced'], ['heavy', 'heavy', 'light', 'heavy', 'heavy']);
 // A quick look: node scripts/calibrate-design.ts 2 quick
-if (process.argv[3] === 'quick') seqs.splice(0, seqs.length, ...(process.argv[4] ?? 'LLLLL,HLLLL,HHLLL,HHHLL,HHHHL,HHHHH,BLLLL,BBLLL,BHHLL,BBHHL,BBBBB').split(',').map((c) => [...c].map((ch) => ({ L: 'light', H: 'heavy', B: 'braced' })[ch] as FrameChoice)));
+if (process.argv[3] === 'quick') seqs.splice(0, seqs.length, ...(process.argv[4] ?? 'LLLLL,HLLLL,HHLLL,HHHLL,HHHHL,HHHHH,BLLLL,BBLLL,BHHLL,BBHHL,BBBBB').split(',').map((c) => [...c].map((ch) => ({ L: 'light', H: 'heavy', B: 'braced', O: 'oneside' })[ch] as FrameChoice)));
 const damperSets = (k: number): boolean[][] => [
   Array(k).fill(false),
   [true, ...Array(k - 1).fill(false)],

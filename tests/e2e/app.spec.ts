@@ -185,6 +185,12 @@ test('the design challenge builds, tests and files a design in the notebook', as
   await page.check('#tmdBox');
   await expect(page.locator('#dCost')).toHaveText('700 of 1000 credits');
   expect(await page.evaluate(() => { const sim = (window as any).__lab.lab.sim; return [sim.levels.length, sim.tmdBlock !== null]; })).toEqual([5, true]);
+  // A level 2 test plays level 2's slow quake, and Explore goes back to the standard one.
+  await page.getByLabel('It will collapse').check();
+  await page.click('#dTest');
+  await expect.poll(() => page.evaluate(() => (window as any).__lab.lab.sim.drive.on), { timeout: 30_000 }).toBe(true);
+  expect(await page.evaluate(() => (window as any).__lab.lab.sim.drive.quakeKind)).toBe('slow');
+  await page.evaluate(() => (window as any).__lab.ctl.stop());
   await page.click('#notebookBtn');
   await expect(page.locator('#nbDesigns')).toContainText('Heavy, heavy, light');
 });

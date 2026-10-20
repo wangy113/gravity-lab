@@ -162,3 +162,76 @@ describe('tuned mass damper', { timeout: 120_000 }, () => {
     sim.world.free();
   });
 });
+
+describe('torsion', { timeout: 120_000 }, () => {
+  /** A Model 2 tower that stays elastic, with `share` of each story's x stiffness on the +z face. */
+  const twisty = (n: number, share = 0.5): SpecimenSpec => {
+    const s = tower(n);
+    for (const st of s.stories) {
+      st.lateral.law = { kind: 'bilinear', yieldDrift: 0.08, ultimateDrift: 0.12, hardening: 0.05, capacity: 6 };
+      st.xShare = share;
+    }
+    return s;
+  };
+
+  it('a twisted floor rings at the frames\' twisting frequency', () => {
+    const spec = twisty(1);
+    const c = compileSpecimen(spec), T = c.springs[0]!.torsion!, f = c.floors[0]!;
+    const predicted = Math.sqrt(T.kt / f.inertiaY) / (2 * Math.PI);
+    const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec });
+    for (let i = 0; i < 240; i++) sim.step();
+    sim.levels[0]!.body.setAngvel({ x: 0, y: 0.05, z: 0 }, true);
+    const s = sim.springs[0]!, crossings: number[] = [];
+    let prev = sim.twistDeg(s);
+    for (let i = 0; i < 240 * 4; i++) {
+      sim.step();
+      const tw = sim.twistDeg(s);
+      if (prev < 0 && tw >= 0) crossings.push(sim.simT);
+      prev = tw;
+    }
+    sim.world.free();
+    const period = (crossings.at(-1)! - crossings[0]!) / (crossings.length - 1);
+    expect(Math.abs(1 / period / predicted - 1)).toBeLessThan(0.03);
+  });
+
+  /** Steady shaking along x near the first mode: largest twist (degrees) and corner drift on each face. */
+  const shake = (spec: SpecimenSpec): { twist: number; plusZ: number; minusZ: number } => {
+    const sim = new ShakeTableSim(RAPIER, { type: 'custom', spec });
+    sim.setMode('steady'); sim.drive.f = compileSpecimen(spec).modes[0]!; sim.drive.g = 0.03; sim.start();
+    let twist = 0, plusZ = 0, minusZ = 0;
+    const s = sim.springs[0]!, T = s.torsion!;
+    for (let i = 0; i < 240 * 15; i++) {
+      sim.step();
+      const th = (sim.twistDeg(s) * Math.PI) / 180;
+      const dx = s.b.body.translation().x - s.a.body.translation().x - s.rest.x; // ground story's sideways drift
+      twist = Math.max(twist, Math.abs(sim.twistDeg(s)));
+      plusZ = Math.max(plusZ, Math.abs(dx + th * T.cz));
+      minusZ = Math.max(minusZ, Math.abs(dx - th * T.cz));
+    }
+    sim.world.free();
+    return { twist, plusZ, minusZ };
+  };
+
+  it('the modal analysis couples sway and twist only when the building is lopsided', () => {
+    const sym = compileSpecimen(twisty(3)), lop = compileSpecimen(twisty(3, 0.85));
+    // symmetric: the lowest mode is pure sway, as the sway-only analysis says
+    expect(sym.modes[0]!).toBeCloseTo(shearBuildingFrequencies(sym.floors.map((f) => f.mass), sym.springs.map((s) => s.k - s.pDelta))[0]!, 6);
+    // lopsided: coupling with twist pulls the lowest mode below the sway-only value
+    expect(lop.modes[0]!).toBeLessThan(shearBuildingFrequencies(lop.floors.map((f) => f.mass), lop.springs.map((s) => s.k - s.pDelta))[0]! * 0.99);
+    // and Rapier agrees: kicked sideways, the lopsided building rings at the coupled first mode
+    expect(Math.abs(ringHz(twisty(3, 0.85)) / lop.modes[0]! - 1)).toBeLessThan(0.03);
+  });
+
+  it('a symmetric building barely twists when shaken straight', () => {
+    expect(compileSpecimen(twisty(3)).springs[0]!.torsion!.ecc).toBe(0);
+    expect(shake(twisty(3)).twist).toBeLessThan(0.2);
+  });
+
+  it('bracing one side makes the building twist, and the flexible side drifts more', () => {
+    const c = compileSpecimen(twisty(3, 0.85));
+    expect(c.springs[0]!.torsion!.ecc).toBeGreaterThan(0.9); // centre of rigidity moved toward +z
+    const r = shake(twisty(3, 0.85)), sym = shake(twisty(3));
+    expect(r.twist).toBeGreaterThan(sym.twist * 10);
+    expect(r.minusZ).toBeGreaterThan(r.plusZ * 2); // the -z side, away from the stiff frame, moves more
+  });
+});

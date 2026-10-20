@@ -19,8 +19,14 @@ export interface StorySpec {
   columnHeight: number;  // clear height, also used for drift ratio, m
   dampingRatio: number;
   lateral: { kind: 'story'; k: number; law: DamageLawSpec }; // N/m
-  /** Drawn members only. Model 1 puts the bracing's stiffness in `lateral.k`. */
-  bracing: 'none' | 'x';
+  /** Drawn members only. Model 1 puts the bracing's stiffness in `lateral.k`. 'one-side' braces only the +z face. */
+  bracing: 'none' | 'x' | 'one-side';
+  /**
+   * Model 2: the share of the story's stiffness along x (the shaking direction) carried by the
+   * frame on the +z face, 0.5 when not given. Anything else moves the centre of rigidity off
+   * the middle, so shaking along x also twists the story.
+   */
+  xShare?: number;
   /** Drawn only: column width, m (0.2 when not given). */
   columnSize?: number;
   /** Drawn only: show dampers. Model 1 puts their effect in `dampingRatio`. */
@@ -84,6 +90,8 @@ export function specProblems(s: SpecimenSpec): string[] {
     if (!(law.yieldDrift > 0 && law.ultimateDrift > law.yieldDrift)) out.push(`${n} must fail at a larger drift than it yields.`);
     if (law.kind === 'bilinear' && !(law.hardening >= 0 && law.hardening < 1 && law.capacity > 0)) out.push(`${n} needs a hardening below 1 and a positive capacity.`);
     if (law.kind === 'bilinear' && s.modelVersion !== 2) out.push(`${n} uses the bilinear law, which needs Model 2.`);
+    if (st.xShare !== undefined && !(st.xShare >= 0 && st.xShare <= 1)) out.push(`${n} must share its stiffness between 0% and 100% on each side.`);
+    if (st.xShare !== undefined && st.xShare !== 0.5 && s.modelVersion !== 2) out.push(`${n} has uneven stiffness, which needs Model 2.`);
   });
   if (s.base.kind === 'rubber' && !(s.base.k > 0 && s.base.moatGap > 0 && s.base.height > 0)) out.push('Isolators need a stiffness, a height and a moat gap.');
   if (s.tmd && !(s.tmd.massRatio > 0 && s.tmd.massRatio <= 0.1)) out.push('A roof damper must weigh more than nothing and at most 10% of the building.');

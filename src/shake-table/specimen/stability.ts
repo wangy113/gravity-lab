@@ -13,13 +13,14 @@ export const STABILITY_LIMIT = 0.7;
 /** The isolators' moat stop is a spring 60 times as stiff as the bearings (prototype `applySprings`). */
 export const MOAT_FACTOR = 60;
 
-export type Chain = 'lateral' | 'vertical' | 'rocking';
+export type Chain = 'lateral' | 'vertical' | 'rocking' | 'twisting';
 // Model 1's support springs stiffen with every story added, so height is what drives the
 // vertical and rocking modes. Laterally the frame stiffness and floor mass do.
 const ADVICE: Record<Chain, string> = {
   lateral: 'Try a more flexible frame or heavier floors.',
   vertical: 'Try fewer stories.',
   rocking: 'Try fewer stories or wider floors.',
+  twisting: 'Try a more flexible frame.',
 };
 export interface ModeUse { chain: Chain; hz: number; zeta: number; use: number }
 export interface StabilityReport { ok: boolean; worst: ModeUse; modes: ModeUse[]; message: string }
@@ -59,6 +60,8 @@ export function checkStability(floors: readonly CompiledFloor[], springs: readon
     ...chainModes('lateral', mass, springs.map((s) => (s.iso ? s.k * (1 + MOAT_FACTOR) : s.k)), springs.map((s) => s.c), dt),
     ...chainModes('vertical', mass, springs.map((s) => s.kv), springs.map((s) => s.cv), dt),
     ...chainModes('rocking', inertia, springs.map((s) => s.kr), springs.map((s) => s.cr), dt),
+    // Twisting: Model 2 stories twist through their frames, everything else through the support springs.
+    ...chainModes('twisting', floors.map((f) => f.inertiaY), springs.map((s) => s.torsion?.kt ?? s.kr), springs.map((s) => s.torsion?.ct ?? s.cr), dt),
   ];
   const worst = modes.reduce((a, b) => (b.use > a.use ? b : a));
   const ok = worst.use <= STABILITY_LIMIT;

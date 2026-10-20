@@ -12,7 +12,7 @@ beforeAll(async () => {
   await RAPIER.init();
 });
 
-const FRAME: Record<string, FrameChoice> = { L: 'light', H: 'heavy', B: 'braced' };
+const FRAME: Record<string, FrameChoice> = { L: 'light', H: 'heavy', B: 'braced', O: 'oneside' };
 /** "HHL" is heavy, heavy, light from the ground up. Dampers by story number. */
 const design = (level: LevelId, frames: string, dampers: number[] = [], isolated = false, tmd = false): Design => ({
   level, frames: [...frames].map((c) => FRAME[c]!), dampers: [...frames].map((_, i) => dampers.includes(i + 1)), isolated, tmd,
@@ -61,6 +61,14 @@ describe('design challenge, level 2', { timeout: 120_000 }, () => {
     expect(meetsLevel(2, plain)).toBe(false); // 5.6% drift in story 4
     expect(damped.maxDriftPct).toBeLessThan(plain.maxDriftPct / 2);
     expect(meetsLevel(2, damped)).toBe(true);
+  });
+
+  it('teaches torsion: bracing one side costs the same as a heavy frame but twists past the limit', () => {
+    const lopsided = test(design(2, 'OOOOL')), balanced = test(design(2, 'HHHHL'));
+    expect(lopsided.cost).toBe(balanced.cost);
+    expect(lopsided.survived).toBe(true);
+    expect(meetsLevel(2, lopsided)).toBe(false); // 3.2% at the worst corner
+    expect(meetsLevel(2, balanced)).toBe(true);
   });
 
   it('can be won within the budget by spreading the stiffness up the tower', () => {
