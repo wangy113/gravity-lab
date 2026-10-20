@@ -46,6 +46,18 @@ test('the quake collapses the bare frame, and replay works', async ({ page }) =>
   await expect(page.locator('#announcer')).toHaveText(/Story \d failed/);
   await page.click('#replayBtn');
   await expect(page.locator('#replaybar')).toBeVisible();
+  // In replay the chart shows the whole test, and clicking it moves the replay there.
+  await expect(page.locator('#chartWrap')).toHaveAccessibleName('Chart of the whole test');
+  const box = (await page.locator('#chart').boundingBox())!;
+  await page.mouse.click(box.x + box.width * 0.25, box.y + box.height / 2);
+  await expect(page.locator('#rpPlay')).toHaveText('Play'); // seeking pauses
+  const early = await page.locator('#rpScrub').inputValue();
+  await page.mouse.click(box.x + box.width * 0.75, box.y + box.height / 2);
+  await expect.poll(async () => +(await page.locator('#rpScrub').inputValue())).toBeGreaterThan(+early + 0.3);
+  await expect(page.locator('#replayInfo')).toHaveText(/^At \d+\.\d\d s: table \d\.\d\d g, roof (\d+ cm|collapsed)$/);
+  // The story pills follow the replay: at the start of the recording nothing has failed yet.
+  await page.mouse.click(box.x + 2, box.y + box.height / 2);
+  await expect(page.locator('#readouts .story', { hasText: 'Story 1' }).locator('.pill')).toHaveText('OK');
   await page.click('#rpExit');
   await expect(page.locator('#replaybar')).toHaveCount(0);
 });

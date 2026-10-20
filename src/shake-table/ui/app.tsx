@@ -117,10 +117,22 @@ function Instruments() {
 function Chart({ ctl }: Ctl) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { ctl.chartCanvas = ref.current; }, [ctl]);
+  const replay = ui.replayOn.value;
+  // In replay the chart shows the whole test, and pressing or dragging on it moves the replay.
+  // The replay bar's slider does the same from the keyboard.
+  const seek = (e: PointerEvent): void => {
+    if (!replay || !(e.buttons & 1)) return;
+    const r = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect();
+    ctl.seekReplayFromChart((e.clientX - r.left) / r.width);
+  };
   return (
-    <section id="chartWrap" class="card" aria-label="Live chart">
-      <div class="legend"><span><i style="background:var(--amber)" />Table accel (g)</span><span><i style="background:var(--cyan)" />Roof swing (cm)</span></div>
-      <canvas id="chart" ref={ref} aria-hidden="true" />
+    <section id="chartWrap" class={`card${replay ? ' replay' : ''}`} aria-label={replay ? 'Chart of the whole test' : 'Live chart'}>
+      <div class="legend">
+        <span><i style="background:var(--amber)" />Table accel (g)</span><span><i style="background:var(--cyan)" />Roof swing (cm)</span>
+        {replay && <span><i style="background:var(--red)" />Failure</span>}
+      </div>
+      <canvas id="chart" ref={ref} aria-hidden="true" onPointerDown={seek} onPointerMove={seek} />
+      {replay && <div class="chartinfo" id="replayInfo" aria-live="off">{ui.replayInfo.value || 'Drag on the chart to move the replay'}</div>}
     </section>
   );
 }

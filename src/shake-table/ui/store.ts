@@ -43,6 +43,8 @@ export const ui = {
   replayPlaying: signal(true),
   replaySpeed: signal(0.25),
   replayPos: signal(0),
+  /** What the instruments read at the replay time, shown under the chart. */
+  replayInfo: signal(''),
 
   // overlays
   loading: signal(true),

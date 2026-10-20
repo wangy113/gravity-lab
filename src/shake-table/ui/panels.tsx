@@ -77,7 +77,7 @@ export function GuidePanel({ ctl }: Ctl) {
                   You predicted: {p.predict.options[entry.prediction]}. {p.predict.why}
                 </p>
               )}
-              <p class="hint">Tip: Replay the test at 0.25x to look closer.</p>
+              <p class="hint">Tip: press Replay to watch it again at 0.25x. In replay the chart shows the whole test with failures in red. Drag on it to jump to any moment.</p>
               <div class="row"><button type="button" class="btn primary" onClick={() => ctl.setPoeStage(3)}>Next: explain it</button></div>
             </>
           ) : (
@@ -253,6 +253,7 @@ export function HelpDialog({ ctl }: Ctl) {
       <h2>Getting around</h2>
       <p><b>Guided lab</b> walks you through six tests. <b>Explore</b> gives you every control. Your results always go to the <b>Notebook</b>.</p>
       <p>Drag to turn the view, scroll or pinch to zoom, or use the camera buttons at the bottom right.</p>
+      <p><b>Replay</b> plays the last 40 s again in slow motion. The chart then shows the whole test, with each failure marked in red. Drag on the chart to jump to any moment, and the instruments show what they measured then.</p>
       <h2>Keyboard shortcuts</h2>
       <button type="button" class="btn" id="shortcutsBtn" aria-pressed={ui.shortcuts.value} onClick={() => ctl.setShortcuts(!ui.shortcuts.value)}>Single-key shortcuts {ui.shortcuts.value ? 'on' : 'off'}</button>
       <p class="hint">Turn these off if you use speech input or a screen reader that sends letter keys.</p>

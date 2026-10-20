@@ -29,8 +29,11 @@ export class Lab {
   readonly curr = new PoseBuffer();
   springState = new Float32Array(0);
   readonly recorder = new Recorder(REC_SECONDS, 60);
-  /** Chart history: time, table acceleration (g), roof swing (cm, NaN after a failure). */
-  readonly chart: [number, number, number][] = [];
+  /**
+   * Instrument history over the replay window: time, table acceleration (g), roof swing (cm,
+   * NaN after a failure). The live chart shows its last CHART_SECONDS, replay shows all of it.
+   */
+  readonly history: [number, number, number][] = [];
   readonly replay = { on: false, t: 0, speed: 0.25, playing: true };
   private eventLog: SimEvent[] = [];
   private readonly listeners: EventListener[] = [];
@@ -116,6 +119,23 @@ export class Lab {
     this.replay.playing = false;
   }
 
+  /** The history sample at or just before time t, or null before the first one. */
+  historyAt(t: number): [number, number, number] | null {
+    const h = this.history;
+    if (!h.length || t < h[0]![0]) return null;
+    let lo = 0, hi = h.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (h[mid]![0] <= t) lo = mid; else hi = mid - 1;
+    }
+    return h[lo]!;
+  }
+
+  /** Times of story failures still inside the replay window, with the story's name. */
+  get failures(): { t: number; story: string }[] {
+    return this.eventLog.flatMap((e) => (e.kind === 'fail' ? [{ t: e.t, story: e.story }] : []));
+  }
+
   get replayFraction(): number {
     const span = this.recorder.t1 - this.recorder.t0;
     return span > 0 ? (this.replay.t - this.recorder.t0) / span : 0;
@@ -168,7 +188,7 @@ export class Lab {
   private afterReset(): void {
     this.host.resetClock();
     this.recorder.clear();
-    this.chart.length = 0;
+    this.history.length = 0;
     this.eventLog = [];
     this.stepCount = 0;
     readPoses(this.sim, this.prev);
@@ -192,7 +212,7 @@ export class Lab {
     if (this.scratchSprings.length !== sim.springs.length * SPRING_FIELDS) this.scratchSprings = new Float32Array(sim.springs.length * SPRING_FIELDS);
     this.readSprings(this.scratchSprings);
     this.recorder.record(sim.simT, this.scratch, this.scratchSprings);
-    this.chart.push([sim.simT, sim.drive.signedAccG(), sim.anyFailed ? NaN : sim.roofSwing() * 100]);
-    while (this.chart.length && this.chart[0]![0] < sim.simT - CHART_SECONDS) this.chart.shift();
+    this.history.push([sim.simT, sim.drive.signedAccG(), sim.anyFailed ? NaN : sim.roofSwing() * 100]);
+    while (this.history.length && this.history[0]![0] < sim.simT - REC_SECONDS) this.history.shift();
   }
 }

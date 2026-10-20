@@ -5,7 +5,7 @@
 import { Synth } from '../core/audio/synth.ts';
 import type { BuildingType } from './constants.ts';
 import { guessTier, lowerTier, saveChoice, TIERS, type TierChoice } from '../core/render/quality.ts';
-import { CHART_SECONDS, type Lab } from './lab.ts';
+import { CHART_SECONDS, SPRING_FIELDS, type Lab } from './lab.ts';
 import { downloadReport, emptyNotebook, saveNotebook, type DesignAttempt, type Notebook, type RunResult } from './notebook.ts';
 import { CHALLENGE, designCost, designName, designSpec, type Design } from './specimen/design.ts';
 import type { ShakeMode } from './motion/table.ts';
@@ -501,8 +501,18 @@ export class Controller {
     ui.behind.value = lab.host.behind;
     if (lab.replay.on) {
       ui.replayPos.value = lab.replayFraction;
+      // The instruments read back what they measured at the replay time.
+      const h = lab.historyAt(lab.replay.t);
+      if (h) {
+        ui.tableA.value = `${Math.abs(h[1]).toFixed(2)} g`;
+        ui.roof.value = Number.isNaN(h[2]) ? 'collapsed' : `${Math.abs(h[2]).toFixed(0)} cm`;
+        ui.replayInfo.value = `At ${lab.replay.t.toFixed(2)} s: table ${Math.abs(h[1]).toFixed(2)} g, roof ${Number.isNaN(h[2]) ? 'collapsed' : `${Math.abs(h[2]).toFixed(0)} cm`}`;
+      }
+      this.renderStories();
+      this.drawChart();
       return;
     }
+    ui.replayInfo.value = '';
     this.peakAcc = Math.max(d.accG, this.peakAcc * 0.85);
     ui.tableF.value = ui.mode.value === 'quake' ? (d.on ? 'mixed' : '0.00 Hz') : `${d.on || d.env > 0.01 ? d.fNow.toFixed(2) : '0.00'} Hz`;
     ui.tableA.value = `${this.peakAcc.toFixed(2)} g`;
@@ -522,12 +532,20 @@ export class Controller {
     this.drawChart();
   }
 
+  /** Story pills. In replay they show the recorded state at the replay time, not the live one. */
   private renderStories(): void {
-    ui.stories.value = [...this.lab.sim.springs].reverse().map((s): StoryStatus => ({
-      label: s.label,
-      status: s.failed ? 'fail' : s.damage > 0.01 ? 'crack' : 'ok',
-      detail: s.iso ? `${(s.d * 100).toFixed(0)} cm` : s.failed ? '' : `${(s.r * 100).toFixed(1)}% drift`,
-    }));
+    const replay = this.lab.replay.on, st = this.lab.springState;
+    ui.stories.value = this.lab.sim.springs.map((s, i): StoryStatus => {
+      const r = replay ? st[i * SPRING_FIELDS]! : s.r;
+      const damage = replay ? st[i * SPRING_FIELDS + 1]! : s.damage;
+      const failed = replay ? st[i * SPRING_FIELDS + 2]! > 0.5 : s.failed;
+      return {
+        label: s.label,
+        status: failed ? 'fail' : damage > 0.01 ? 'crack' : 'ok',
+        // isolators show how far they moved, d = r times the drift height
+        detail: s.iso ? `${(r * s.driftHeight * 100).toFixed(0)} cm` : failed ? '' : `${(r * 100).toFixed(1)}% drift`,
+      };
+    }).reverse();
   }
 
   private camTag(): string {
@@ -538,7 +556,27 @@ export class Controller {
     return `${ui.cam.value === 'side' ? 'CAM 2   HIGH SPEED   240 FPS' : 'CAM 3   FLOOR 2   INTERIOR'}   ${time}`;
   }
 
-  /** Table acceleration and roof swing over the last 12 s (prototype `drawChart`). */
+  /** The time span the chart shows: the last 12 s live, or the whole recording in replay. */
+  private chartSpan(): [number, number] | null {
+    const h = this.lab.history;
+    if (h.length < 2) return null;
+    const t1 = h[h.length - 1]![0];
+    return this.lab.replay.on ? [h[0]![0], t1] : [t1 - CHART_SECONDS, t1];
+  }
+
+  /** In replay, clicking or dragging on the chart moves the replay there (fraction 0 to 1 across the chart). */
+  seekReplayFromChart(fraction: number): void {
+    const span = this.chartSpan();
+    if (!this.lab.replay.on || !span) return;
+    this.lab.seekReplayTime(span[0] + Math.min(1, Math.max(0, fraction)) * (span[1] - span[0]));
+    this.lab.replay.playing = false;
+    ui.replayPlaying.value = false;
+  }
+
+  /**
+   * Table acceleration and roof swing (prototype `drawChart`). Live it scrolls over the last
+   * 12 s. In replay it shows the whole test, with failures marked and a cursor at the replay time.
+   */
   private drawChart(): void {
     const chart = this.chartCanvas;
     if (!chart) return;
@@ -553,25 +591,46 @@ export class Controller {
     cx.font = `${11 * dpr}px "JetBrains Mono", monospace`;
     cx.fillText('+0.6 g', 4 * dpr, 12 * dpr);
     cx.fillText('+80 cm', W - 50 * dpr, 12 * dpr);
-    const data = this.lab.chart;
-    if (data.length < 2) return;
-    const tEnd = data[data.length - 1]![0];
+    const span = this.chartSpan();
+    if (!span) return;
+    const [t0, t1] = span, data = this.lab.history, replay = this.lab.replay.on;
+    const X = (t: number): number => (W * (t - t0)) / (t1 - t0 || 1);
+    if (replay) {
+      // failures: a red line where each story gave way
+      cx.strokeStyle = 'rgba(255,77,61,.85)';
+      cx.fillStyle = 'rgba(255,77,61,.95)';
+      cx.lineWidth = 2 * dpr;
+      this.lab.failures.forEach((f, k) => {
+        if (f.t < t0 || f.t > t1) return;
+        cx.beginPath(); cx.moveTo(X(f.t), 16 * dpr); cx.lineTo(X(f.t), H); cx.stroke();
+        // stagger the labels, since stories often fail within a second of each other
+        cx.fillText(f.story.replace('Story ', 'S'), X(f.t) + 3 * dpr, H - (4 + 13 * (k % 3)) * dpr);
+      });
+    }
     const line = (idx: 1 | 2, scale: number, col: string): void => {
       cx.strokeStyle = col;
-      cx.lineWidth = 2 * dpr;
+      cx.lineWidth = (replay ? 1.5 : 2) * dpr;
       cx.beginPath();
       let pen = false;
       for (const p of data) {
+        if (p[0] < t0) continue;
         if (Number.isNaN(p[idx])) { pen = false; continue; }
-        const X = W * (1 - (tEnd - p[0]) / CHART_SECONDS);
         const v = Math.max(-1, Math.min(1, p[idx] / scale));
         const Y = H / 2 - v * (H / 2 - 2);
-        if (pen) cx.lineTo(X, Y); else cx.moveTo(X, Y);
+        if (pen) cx.lineTo(X(p[0]), Y); else cx.moveTo(X(p[0]), Y);
         pen = true;
       }
       cx.stroke();
     };
     line(1, 0.6, '#ffb020');
     line(2, 80, '#4cc9f0');
+    if (replay) {
+      const x = X(this.lab.replay.t);
+      cx.strokeStyle = '#ffffff';
+      cx.lineWidth = 2 * dpr;
+      cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke();
+      cx.fillStyle = '#ffffff';
+      cx.beginPath(); cx.moveTo(x - 6 * dpr, 0); cx.lineTo(x + 6 * dpr, 0); cx.lineTo(x, 8 * dpr); cx.fill();
+    }
   }
 }
