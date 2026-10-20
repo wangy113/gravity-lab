@@ -1,8 +1,8 @@
 /**
- * Compiles a specimen specification into plain data: floor slabs, Model 1 springs and the
- * members to draw (docs/ARCHITECTURE.md 5.3). The simulation turns this into Rapier bodies.
- * The arithmetic follows the prototype's `buildTower` step by step, so the three presets
- * give bit-identical physics.
+ * Compiles a specimen specification into plain data: floor slabs, springs and the members to
+ * draw (docs/ARCHITECTURE.md 5.3). The simulation turns this into Rapier bodies. For Model 1
+ * the arithmetic follows the prototype's `buildTower` step by step, so the three presets give
+ * bit-identical physics.
  */
 import type { V3 } from '../../core/sim/math.ts';
 import { TOP, X0 } from '../constants.ts';
@@ -11,6 +11,8 @@ import { specProblems, type SpecimenSpec } from './spec.ts';
 import { checkStability, type StabilityReport } from './stability.ts';
 
 const TABLE_HALF = 0.15; // half thickness of the table top, m
+/** Model 2's support springs: single-story frequencies, Hz, and damping ratio. */
+export const SUPPORT_V2 = { vertical: 15, rocking: 10, damping: 0.2 } as const;
 
 export type MemberKind = 'col' | 'brace' | 'bear' | 'damper';
 /** A drawn member, from a point on the lower body (`la`) to a point on the upper body (`lb`), body-local. */
@@ -35,6 +37,10 @@ export interface CompiledSpring {
   moatGap: number;   // m, isolators only
   driftHeight: number; // m
   yieldR: number; ultR: number; // drift ratios
+  /** Model 2's bilinear law, or null for the prototype's damage law. */
+  bilinear: { hardening: number; capacity: number } | null;
+  /** P-Delta: the weight above divided by the story height, N/m. It acts as a negative lateral stiffness. 0 in Model 1. */
+  pDelta: number;
   members: Member[];
 }
 
@@ -66,12 +72,18 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
   const n = spec.stories.length;
   const half = { x: spec.plan.x / 2, y: t / 2, z: spec.plan.z / 2 };
   const inertia = (m * (Math.max(spec.plan.x, spec.plan.z) ** 2 + t * t)) / 12;
-  // The prototype's numerical support springs: 10 Hz vertical (scaled by the number of
-  // stories) and 8 Hz rocking, both 30% damped. Model 2 will fix them per story.
-  const kv = m * n * Math.pow(2 * Math.PI * 10, 2);
-  const cv = 2 * 0.3 * Math.sqrt(kv * m);
-  const kr = inertia * Math.pow(2 * Math.PI * 8, 2);
-  const cr = 2 * 0.3 * Math.sqrt(kr * inertia);
+  // Numerical support springs (vertical and rocking). Model 1 keeps the prototype's: 10 Hz
+  // vertical scaled by the number of stories, 8 Hz rocking, both 30% damped. That scaling
+  // makes tall buildings unstable (stability.ts). Model 2 fixes them per story, so they stay
+  // the same however tall the building is, and damps them at 20%.
+  const v2 = spec.modelVersion === 2;
+  const kv = v2 ? m * Math.pow(2 * Math.PI * SUPPORT_V2.vertical, 2) : m * n * Math.pow(2 * Math.PI * 10, 2);
+  const cv = 2 * (v2 ? SUPPORT_V2.damping : 0.3) * Math.sqrt(kv * m);
+  const kr = inertia * Math.pow(2 * Math.PI * (v2 ? SUPPORT_V2.rocking : 8), 2);
+  const cr = 2 * (v2 ? SUPPORT_V2.damping : 0.3) * Math.sqrt(kr * inertia);
+  // Weight carried by each story (the floors above it), for P-Delta in Model 2.
+  const G = 9.81;
+  const weightAbove = (story: number): number => (v2 ? G * m * (n - story) : 0);
 
   const floors: CompiledFloor[] = [];
   const springs: CompiledSpring[] = [];
@@ -88,7 +100,8 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     const s: CompiledSpring = {
       label: 'Isolators', lower: -1, upper: b, rest: { x: X0, y: TABLE_HALF + base.height + t / 2, z: 0 },
       k: base.k, c: 2 * base.dampingRatio * Math.sqrt(base.k * totalMass), ...support,
-      iso: true, moatGap: base.moatGap, driftHeight: spec.stories[0]!.columnHeight, yieldR: 0, ultR: Infinity, members: [],
+      iso: true, moatGap: base.moatGap, driftHeight: spec.stories[0]!.columnHeight, yieldR: 0, ultR: Infinity,
+      bilinear: null, pDelta: 0, members: [],
     };
     const B = Math.min(half.x, half.z) - 0.4;
     for (const cx of [-B, B]) for (const cz of [-B, B]) s.members.push({ la: { x: X0 + cx, y: TABLE_HALF, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'bear' });
@@ -107,7 +120,10 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     const s: CompiledSpring = {
       label: `Story ${i + 1}`, lower, upper: f, rest,
       k: st.lateral.k, c: 2 * st.dampingRatio * Math.sqrt(st.lateral.k * m), ...support,
-      iso: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift, members: [],
+      iso: false, moatGap: Infinity, driftHeight: st.columnHeight, yieldR: law.yieldDrift, ultR: law.ultimateDrift,
+      bilinear: law.kind === 'bilinear' ? { hardening: law.hardening, capacity: law.capacity } : null,
+      pDelta: weightAbove(i) / rest.y,
+      members: [],
     };
     const Cx = half.x - 0.15, Cz = half.z - 0.15;
     for (const cx of [-Cx, Cx]) for (const cz of [-Cz, Cz]) s.members.push({ la: { x: rest.x + cx, y: lh, z: cz }, lb: { x: cx, y: -t / 2, z: cz }, kind: 'col', ...(st.columnSize ? { size: st.columnSize } : {}) });
@@ -121,7 +137,8 @@ export function compileSpecimen(spec: SpecimenSpec): CompiledSpecimen {
     lower = f; prevCenter = y;
   });
 
-  const modes = shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k));
+  // P-Delta softens each story, so the building swings a little slower than its frame alone.
+  const modes = shearBuildingFrequencies(floors.map((fl) => fl.mass), springs.map((s) => s.k - s.pDelta));
   const stability = checkStability(floors, springs);
   if (!stability.ok) throw new SpecimenError([stability.message]);
   return { spec, floors, springs, groundFloor, modes, stability };

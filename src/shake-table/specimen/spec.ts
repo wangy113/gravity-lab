@@ -1,16 +1,19 @@
 /**
- * Specimen specification, Model 1 (docs/ARCHITECTURE.md 5.3 and Appendix B). A specimen is
+ * Specimen specification, Models 1 and 2 (docs/ARCHITECTURE.md 5.3 and Appendix B). A specimen is
  * data: floors, stories and a base. `compile.ts` turns it into bodies and springs, and
  * `stability.ts` checks it before the simulation is allowed to run it.
  */
 import { CH, M, ST, ISO_H, ISO_LIMIT, type PresetType } from '../constants.ts';
 
-export interface DamageLawSpec {
+export type DamageLawSpec =
   /** The prototype's law: stiffness drops by up to 30% past the yield drift, failure at the ultimate drift. */
-  kind: 'prototype-damage';
-  yieldDrift: number;    // drift ratio
-  ultimateDrift: number; // drift ratio
-}
+  | { kind: 'prototype-damage'; yieldDrift: number; ultimateDrift: number } // drift ratios
+  /**
+   * Model 2: elastic up to the yield drift, then the stiffness falls to `hardening` times k and
+   * the story keeps a permanent lean when it unloads. It fractures past the ultimate drift, or
+   * when its accumulated yielding reaches `capacity` times the gap between yield and ultimate.
+   */
+  | { kind: 'bilinear'; yieldDrift: number; ultimateDrift: number; hardening: number; capacity: number };
 
 export interface StorySpec {
   columnHeight: number;  // clear height, also used for drift ratio, m
@@ -31,7 +34,11 @@ export type BaseSpec =
 export interface SpecimenSpec {
   id: string;
   name: string;
-  modelVersion: 1;
+  /**
+   * 1: the prototype's model (support springs that stiffen with height, no P-Delta). 2: support
+   * springs fixed per story, P-Delta, and the bilinear law allowed.
+   */
+  modelVersion: 1 | 2;
   plan: { x: number; z: number };              // slab size, m
   slab: { thickness: number; mass: number };   // m, kg per floor
   base: BaseSpec;
@@ -70,6 +77,8 @@ export function specProblems(s: SpecimenSpec): string[] {
     if (!(st.columnHeight >= 1 && st.columnHeight <= 4)) out.push(`${n} columns must be 1 to 4 m tall.`);
     const law = st.lateral.law;
     if (!(law.yieldDrift > 0 && law.ultimateDrift > law.yieldDrift)) out.push(`${n} must fail at a larger drift than it yields.`);
+    if (law.kind === 'bilinear' && !(law.hardening >= 0 && law.hardening < 1 && law.capacity > 0)) out.push(`${n} needs a hardening below 1 and a positive capacity.`);
+    if (law.kind === 'bilinear' && s.modelVersion !== 2) out.push(`${n} uses the bilinear law, which needs Model 2.`);
   });
   if (s.base.kind === 'rubber' && !(s.base.k > 0 && s.base.moatGap > 0 && s.base.height > 0)) out.push('Isolators need a stiffness, a height and a moat gap.');
   return out;

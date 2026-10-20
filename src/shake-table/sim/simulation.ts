@@ -49,6 +49,10 @@ export interface Spring {
   k: number; c: number; kv: number; cv: number; kr: number; cr: number;
   iso: boolean; label: string; yieldR: number; ultR: number;
   moatGap: number; driftHeight: number; // m
+  bilinear: { hardening: number; capacity: number } | null;
+  pDelta: number; // N/m, weight above over story height (Model 2)
+  ex: number; ez: number; // bilinear law: permanent (plastic) offset, m
+  plastic: number; // bilinear law: accumulated yielding, m
   damage: number; failed: boolean;
   r: number; // drift ratio
   d: number; // lateral displacement, m
@@ -189,7 +193,7 @@ export class ShakeTableSim {
   /** First natural frequency of the current (damaged) building, Hz, or 0 after a failure. */
   natBeat(): number {
     if (this.anyFailed) return 0;
-    const ks = this.springs.map((s) => s.k * (1 - 0.3 * s.damage));
+    const ks = this.springs.map((s) => s.k * (1 - 0.3 * s.damage) - s.pDelta);
     return shearBuildingFrequencies(this.springs.map((s) => s.b.mass), ks)[0] ?? 0;
   }
 
@@ -227,7 +231,7 @@ export class ShakeTableSim {
   private addSpring(cs: CompiledSpring): Spring {
     const s: Spring = {
       ...cs, index: this.springs.length, a: cs.lower < 0 ? this.table : this.levels[cs.lower]!, b: this.levels[cs.upper]!,
-      aDyn: cs.lower >= 0, damage: 0, failed: false, r: 0, d: 0, members: cs.members.map((m) => ({ ...m })),
+      aDyn: cs.lower >= 0, ex: 0, ez: 0, plastic: 0, damage: 0, failed: false, r: 0, d: 0, members: cs.members.map((m) => ({ ...m })),
     };
     this.springs.push(s);
     return s;
@@ -297,8 +301,16 @@ export class ShakeTableSim {
       const rv = rotate(s.rest, qa);
       const dx = pb.x - pa.x - rv.x, dy = pb.y - pa.y - rv.y, dz = pb.z - pa.z - rv.z;
       const va = A.linvel(), vb = B.linvel();
-      const kf = s.k * (1 - 0.3 * s.damage);
-      let fx = -kf * dx - s.c * (vb.x - va.x), fz = -kf * dz - s.c * (vb.z - va.z);
+      let fx: number, fz: number;
+      if (s.bilinear) {
+        [fx, fz] = this.bilinearForce(s, dx, dz);
+        fx -= s.c * (vb.x - va.x); fz -= s.c * (vb.z - va.z);
+      } else {
+        const kf = s.k * (1 - 0.3 * s.damage);
+        fx = -kf * dx - s.c * (vb.x - va.x); fz = -kf * dz - s.c * (vb.z - va.z);
+      }
+      // P-Delta (Model 2): the weight above pushes a leaning story further over.
+      if (s.pDelta) { fx += s.pDelta * dx; fz += s.pDelta * dz; }
       const fy = -s.kv * dy - s.cv * (vb.y - va.y);
       const d = Math.hypot(dx, dz);
       s.d = d; s.r = d / s.driftHeight;
@@ -319,7 +331,9 @@ export class ShakeTableSim {
       const tz = -s.kr * qr.z * f - s.cr * (wb.z - wa.z);
       B.applyTorqueImpulse({ x: tx * DT, y: ty * DT, z: tz * DT }, true);
       if (s.aDyn) A.applyTorqueImpulse({ x: -tx * DT, y: -ty * DT, z: -tz * DT }, true);
-      if (!s.iso) {
+      if (!s.iso && s.bilinear) {
+        if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);
+      } else if (!s.iso) {
         if (s.r > s.yieldR) {
           if (s.damage === 0) this.emit({ kind: 'crack', t: this.simT, p: 0.5, story: s.label, pos: this.memberMid(s) });
           s.damage = Math.min(1, s.damage + ((s.r - s.yieldR) / (s.ultR - s.yieldR)) * DT * 1.6);
@@ -327,6 +341,33 @@ export class ShakeTableSim {
         if (s.r > s.ultR || s.damage >= 1) this.failStory(s, dx, dz);
       }
     }
+  }
+
+  /**
+   * Model 2's bilinear story law, in both horizontal directions at once (kinematic hardening).
+   * The elastic part of the drift is capped at the yield drift. Pushing past it moves the
+   * plastic offset (ex, ez), which stays when the story unloads: a permanent lean. After
+   * yielding the story stiffness is `hardening` times k. Damage is the accumulated yielding
+   * over the story's capacity, and the story fractures at 1.
+   */
+  private bilinearForce(s: Spring, dx: number, dz: number): [number, number] {
+    const law = s.bilinear!, a = law.hardening, dy = s.yieldR * s.driftHeight;
+    let ux = dx - s.ex, uz = dz - s.ez;
+    const u = Math.hypot(ux, uz);
+    if (u > dy) {
+      const over = u - dy;
+      s.ex += (ux / u) * over; s.ez += (uz / u) * over;
+      ux = dx - s.ex; uz = dz - s.ez;
+      if (s.plastic === 0) this.emit({ kind: 'crack', t: this.simT, p: 0.5, story: s.label, pos: this.memberMid(s) });
+      s.plastic += over;
+      s.damage = Math.min(1, s.plastic / (law.capacity * (s.ultR - s.yieldR) * s.driftHeight));
+    }
+    return [-s.k * (a * dx + (1 - a) * ux), -s.k * (a * dz + (1 - a) * uz)];
+  }
+
+  /** Permanent lean of a story after yielding (Model 2), as a drift ratio. */
+  residualDrift(s: Spring): number {
+    return Math.hypot(s.ex, s.ez) / s.driftHeight;
   }
 
   private memberMid(s: Spring): Vec3 {
