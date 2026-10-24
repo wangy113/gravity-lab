@@ -225,3 +225,11 @@ kbd { font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 2px 7p
 #chartWrap.replay { outline: 2px solid rgba(255,255,255,.35); }
 #chartWrap.replay #chart { cursor: ew-resize; touch-action: none; }
 .chartinfo { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink); margin-top: 4px; }
+
+/* ---------------------------------------------------------------- diagrams (dual coding: every idea in words and as a labeled picture) */
+figure.fig { margin: 10px 0 12px; padding: 10px 10px 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); }
+.figsvg { display: block; width: 100%; height: auto; color: var(--ink); }
+figure.fig figcaption { color: var(--muted); font-size: 14px; line-height: 1.4; margin-top: 6px; }
+.figrecall { margin: 0 0 10px; }
+.figrecall summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--cyan); }
+.hints figure.fig { margin-top: 6px; }

@@ -5,6 +5,8 @@
 import { OBJECTIVES, POE } from './pedagogy.ts';
 import { LEVELS, meetsLevel, type Design, type LevelId } from './specimen/design.ts';
 import { STOPS } from './tour.ts';
+import { STOP_FIGURES } from './concept-figures.ts';
+import { figureHtml } from './figure.ts';
 
 export interface RunResult {
   at: string; // ISO time
@@ -110,8 +112,9 @@ export function reportHtml(n: Notebook): string {
     const result = t.result ? `<ul>${describeResult(t.result).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : '<p><em>Test not run</em></p>';
     return `<section><h2>Test ${i + 1}. ${esc(s.title)}</h2>
 <p class="obj"><b>Objective:</b> ${esc(p.objective)} (${p.objectiveIds.join(', ')})</p>
+${figureHtml(STOP_FIGURES[i]!.setup)}
 <h3>Predict</h3><p>${esc(p.predict.question)}</p><p><b>My prediction:</b> ${pred}</p>
-<h3>Observe</h3>${result}
+<h3>Observe</h3>${result}${figureHtml(STOP_FIGURES[i]!.result)}
 <h3>Explain</h3><p class="q">${esc(p.explain)}</p><div class="ans">${t.explanation ? esc(t.explanation).replace(/\n/g, '<br>') : '<em>No explanation yet</em>'}</div>
 </section>`;
   }).join('\n');
@@ -135,7 +138,7 @@ export function reportHtml(n: Notebook): string {
     : '';
   const done = n.tests.filter((t) => t.result).length;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shake Table Lab report</title>
-<style>body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#111}h1{margin:0}h2{margin-top:28px;border-bottom:2px solid #ffb020;padding-bottom:4px}h3{margin:14px 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#555}.obj{background:#f4f6f8;padding:6px 10px;border-radius:6px}.q{color:#444}.ans{border-left:4px solid #4cc9f0;padding:6px 10px;background:#f7fbfd;white-space:normal}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}@media print{h2{break-after:avoid}section{break-inside:avoid}}</style>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;color:#111}h1{margin:0}h2{margin-top:28px;border-bottom:2px solid #ffb020;padding-bottom:4px}h3{margin:14px 0 4px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#555}.obj{background:#f4f6f8;padding:6px 10px;border-radius:6px}.q{color:#444}.ans{border-left:4px solid #4cc9f0;padding:6px 10px;background:#f7fbfd;white-space:normal}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 8px;text-align:left}figure.fig{margin:10px 0;max-width:420px}figure.fig svg{width:100%;height:auto;display:block}figcaption{font-size:13px;color:#444;margin-top:4px}@media print{figure.fig{break-inside:avoid}h2{break-after:avoid}section{break-inside:avoid}}</style>
 </head><body><h1>Shake Table Lab report</h1>
 <p><b>Student:</b> ${esc(n.student || 'not given')}<br><b>Date:</b> ${new Date().toLocaleDateString()}<br><b>Tests completed:</b> ${done} of ${STOPS.length}</p>
 <h2>Learning objectives</h2><ul>${OBJECTIVES.map((o) => `<li><b>${o.id}</b> ${esc(o.text)}</li>`).join('')}</ul>

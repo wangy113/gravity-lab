@@ -1,12 +1,14 @@
 /** The design challenge: build your own building, predict, test it against a quake, improve. */
 import { useEffect, useRef } from 'preact/hooks';
 import { attemptLevel, bestDesign, levelGoal } from '../notebook.ts';
+import { figureHtml } from '../figure.ts';
+import { HINT_FIGURES } from '../hint-figures.ts';
 import { compileSpecimen, SpecimenError } from '../specimen/compile.ts';
 import { DAMPER, designCost, designSpec, FRAMES, ISOLATION, LEVELS, meetsLevel, TMD, type FrameChoice, type LevelId } from '../specimen/design.ts';
 import { Seg, type Ctl } from './app.tsx';
 import { ui } from './store.ts';
 
-/** Ideas students unlock by failing, all about this model. */
+/** Ideas students unlock by failing, all about this model. Each has a picture in HINT_FIGURES, in the same order. */
 const HINTS = [
   'A building fails where it is weakest. If one story is much weaker than the one below it, the bending piles up there. Engineers call it a soft story.',
   'If one side of a story is much stiffer than the other, shaking makes the building twist, and the flexible side moves far more than the middle. Bracing only one face is as stiff as a heavy frame on paper, but it twists. Keep the stiffness balanced.',
@@ -100,7 +102,12 @@ export function DesignPanel({ ctl }: Ctl) {
       {failures > 0 && (
         <details class="hints">
           <summary>Engineering hints ({Math.min(failures, HINTS.length)} unlocked)</summary>
-          <ul>{HINTS.slice(0, Math.min(failures, HINTS.length)).map((h) => <li>{h}</li>)}</ul>
+          <ul>{HINTS.slice(0, Math.min(failures, HINTS.length)).map((h, k) => (
+            <li>
+              {h}
+              <div dangerouslySetInnerHTML={{ __html: figureHtml(HINT_FIGURES[k]!) }} />
+            </li>
+          ))}</ul>
         </details>
       )}
 

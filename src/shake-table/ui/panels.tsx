@@ -4,6 +4,8 @@ import { attemptLevel, bestDesign, describeResult } from '../notebook.ts';
 import { LEVELS, type LevelId } from '../specimen/design.ts';
 import { OBJECTIVES, POE, POE_STEPS } from '../pedagogy.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
+import { STOP_FIGURES } from '../concept-figures.ts';
+import { figureHtml } from '../figure.ts';
 import { TIERS } from '../../core/render/quality.ts';
 import { Dialog, Seg, type Ctl } from './app.tsx';
 import { ui } from './store.ts';
@@ -40,6 +42,7 @@ export function GuidePanel({ ctl }: Ctl) {
       {stage === 0 && (
         <div class="stage" id="stagePredict">
           <div id="pBody" dangerouslySetInnerHTML={{ __html: s.body }} />
+          <div id="pFigure" dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) }} />
           <fieldset class="predict">
             <legend>{p.predict.question}</legend>
             {p.predict.options.map((o, k) => (
@@ -78,6 +81,8 @@ export function GuidePanel({ ctl }: Ctl) {
                   You predicted: {p.predict.options[entry.prediction]}. {p.predict.why}
                 </p>
               )}
+              <p class="hint">Compare what you saw with the diagram. Which label matches each thing you measured?</p>
+              <div id="oFigure" dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.result) }} />
               <p class="hint">Tip: press Replay to watch it again at 0.25x. In replay the chart shows the whole test with failures in red. Drag on it to jump to any moment.</p>
               <div class="row"><button type="button" class="btn primary" onClick={() => ctl.setPoeStage(3)}>Next: explain it</button></div>
             </>
@@ -92,6 +97,10 @@ export function GuidePanel({ ctl }: Ctl) {
 
       {stage === 3 && (
         <div class="stage" id="stageExplain">
+          <details class="figrecall">
+            <summary>Show the diagrams again</summary>
+            <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) + figureHtml(STOP_FIGURES[i]!.result) }} />
+          </details>
           <label class="lbl" for={`explain${i}`}>{p.explain}</label>
           <textarea id={`explain${i}`} rows={6} value={entry.explanation} placeholder={'Claim: what happened?\nEvidence: which numbers or observations show it?\nReasoning: what science explains it?'}
             onInput={(e) => ctl.setExplanation(i, e.currentTarget.value)} />
@@ -198,6 +207,7 @@ export function InstructorsDialog({ ctl }: Ctl) {
         <li><b>Observe.</b> The lab records the measurements and compares them with the prediction, with a short science explanation.</li>
         <li><b>Explain.</b> Students write a claim, the evidence for it and their reasoning (claim, evidence, reasoning).</li>
       </ol>
+      <p><b>Words and pictures together.</b> Every idea is given twice, following dual coding theory (Paivio): once in words and once as a labeled diagram that uses the same words, such as a response curve that peaks at the natural beat. Students who hold an idea both as words and as an image remember and use it better than with either alone. In Predict a setup diagram sits beside the reading. It pictures the idea but not the outcome, so it does not give the prediction away. In Observe a result diagram sits next to the measured results and the science explanation. Both can be reopened while students write their explanation. Each design hint has its own diagram too. The text version and the lab report include every diagram with a written description.</p>
       <p>The six tests build on each other: what a shake table does, resonance, why frequency matters as much as strength, stiffness, base isolation, and finally nonstructural hazards. Each fact is tagged <span class="tag real">Real world</span> or <span class="tag model">Model</span>, so students also learn what a scientific model can and cannot tell them.</p>
 
       <h2>Design challenge</h2>

@@ -583,6 +583,8 @@ steps:
     prompt: Compare your measurement with the natural beat. Use your data.
 ```
 
+**Words and pictures together.** Following dual coding theory (Paivio), every lesson idea is given in words and as a labeled diagram that uses the same words. The guided tests take theirs from `src/shake-table/concept-figures.ts` and the design hints from `src/shake-table/hint-figures.ts`. Each guided test has a setup diagram for Predict, which pictures the idea without giving the outcome away, and a result diagram for Observe. Diagrams are static inline SVG with alt text and a caption, so the same picture appears in the panel, the text version and the printed report. A lesson file will carry its diagram as a `figure` on the `read` step.
+
 Answer checks bind to model values (`model.mode1`) instead of typed numbers, so they stay right when the model changes. These checks give feedback, not grades, because anyone can read them in the browser. Grades come from the report or a Canvas quiz (section 11).
 
 **Lesson set:**
