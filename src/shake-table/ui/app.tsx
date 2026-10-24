@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { Controller } from '../controller.ts';
 import { preflightNote } from '../motion/preflight.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
+import { STOP_FIGURES } from '../concept-figures.ts';
+import { figureHtml } from '../figure.ts';
 import { DesignPanel } from './design.tsx';
 import { CameraControls, CollapseBanner, GuidePanel, HelpDialog, InstructorsDialog, NotebookDialog, StressLegend } from './panels.tsx';
 import { ui, type DialogName } from './store.ts';
@@ -211,6 +213,7 @@ function Dialogs({ ctl }: Ctl) {
               <h2>Test {i + 1}. {s.title}</h2>
               <p><b>{s.tags.map((t) => TAG_NAMES[t]).join(' and ')}</b></p>
               <div dangerouslySetInnerHTML={{ __html: s.body }} />
+              <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) }} />
               <p><b>Notice:</b> {s.notice}</p>
             </>
           ))}
