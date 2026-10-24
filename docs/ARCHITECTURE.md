@@ -827,7 +827,7 @@ Pulled forward for a demo of the lab in an online course, ahead of phases 3 and 
 - **For instructors page.** Objectives mapped to tests, the teaching model, how to run it in Canvas, a short rubric, and access notes.
 - **Controls.** Camera buttons (turn, zoom, reset), keyboard shortcuts listed in Help, and full screen.
 - **Stress colors** use the prototype's green to red ramp, are on by default, and have a legend. This deliberately keeps the original ramp, so the color-blind-safe ramp in 6.4 waits for the accessibility pass. Story pills still show words, so color is never the only signal.
-- **Dramatic effects, on by default and switchable in Help.** These are stronger camera shake, a flashing beacon and a "TABLE LIVE" sign while the table runs, and a "COLLAPSE" banner. After a collapse, an automatic slow-motion replay starts 2 s before the failure. Under reduced motion the shake, flashing and banner animation are off.
+- **Dramatic effects, on by default and switchable in Help.** These are stronger camera shake, a flashing beacon and a "TABLE LIVE" sign while the table runs, and a "COLLAPSE" banner. After a collapse, an automatic slow-motion replay starts 2 s before the failure. Under reduced motion the shake, flashing and banner animation are off. **Calm motion**, offered on the start screen and in Help, does the same on request and also turns off dramatic effects and slows the orbit camera. It starts on when the device asks for reduced motion.
 
 ### 16.3 Phase 2 results (2026-10-13)
 

@@ -25,6 +25,8 @@ export interface RunResult {
 export interface TestEntry {
   prediction: number | null;
   result: RunResult | null;
+  /** The comparison run some tests ask for, such as test 3 again at 1.2 Hz. */
+  compare?: RunResult | null;
   explanation: string;
 }
 
@@ -114,7 +116,7 @@ export function reportHtml(n: Notebook): string {
 <p class="obj"><b>Objective:</b> ${esc(p.objective)} (${p.objectiveIds.join(', ')})</p>
 ${figureHtml(STOP_FIGURES[i]!.setup)}
 <h3>Predict</h3><p>${esc(p.predict.question)}</p><p><b>My prediction:</b> ${pred}</p>
-<h3>Observe</h3>${result}${figureHtml(resultFigure(i, t.result))}
+<h3>Observe</h3>${result}${figureHtml(resultFigure(i, t.result))}${s.compare && t.compare ? `<p><b>${esc(s.compare.label)}:</b></p><ul>${describeResult(t.compare).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}
 <h3>Explain</h3><p class="q">${esc(p.explain)}</p><div class="ans">${t.explanation ? esc(t.explanation).replace(/\n/g, '<br>') : '<em>No explanation yet</em>'}</div>
 </section>`;
   }).join('\n');

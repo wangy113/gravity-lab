@@ -21,6 +21,7 @@ async function boot(): Promise<void> {
   const view = new LabView(canvas);
   const lab = new Lab(RAPIER, 'bare');
   const ctl = new Controller(lab, view);
+  if (ui.calm.value) ctl.setCalm(true);
   render(<App ctl={ctl} />, document.querySelector('#app')!);
 
   // Quality tier before loading, so the hall loads at the right resolution.

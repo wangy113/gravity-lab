@@ -25,7 +25,7 @@ export class Controller {
   private fps = { from: 0, frames: 0, done: true };
   private pendingStart: ReturnType<typeof setTimeout> | undefined;
   /** The run in progress: which guided test it belongs to, and what it has measured so far. */
-  private run: { stop: number | null; design: Design | null; prediction: 'survive' | 'collapse' | null; natBeat: number; peakTableG: number; maxDrift: number; failT: number | null; ended: number | null } | null = null;
+  private run: { stop: number | null; compare: boolean; design: Design | null; prediction: 'survive' | 'collapse' | null; natBeat: number; peakTableG: number; maxDrift: number; failT: number | null; ended: number | null } | null = null;
   private bannerTimer: ReturnType<typeof setTimeout> | undefined;
   chartCanvas: HTMLCanvasElement | null = null;
 
@@ -86,7 +86,8 @@ export class Controller {
     d.quakeKind = ui.design.value && ui.type.value === 'custom' ? LEVELS[ui.draft.value.level].quake : 'standard';
   }
 
-  start(): void {
+  /** Starts the table. `compare` marks a guided test's second run (Stop.compare). */
+  start(compare = false): void {
     this.synth.init();
     if (this.lab.replay.on) this.exitReplay();
     this.syncDrive();
@@ -96,7 +97,7 @@ export class Controller {
     ui.banner.value = null;
     const stop = ui.stop.value;
     const design = this.lab.sim.type === 'custom' && ui.design.value ? structuredClone(ui.draft.value) : null;
-    this.run = { stop, design, prediction: design ? ui.designPrediction.value : null, natBeat: this.lab.sim.natBeat(), peakTableG: 0, maxDrift: 0, failT: null, ended: null };
+    this.run = { stop, compare: compare && stop !== null, design, prediction: design ? ui.designPrediction.value : null, natBeat: this.lab.sim.natBeat(), peakTableG: 0, maxDrift: 0, failT: null, ended: null };
     if (stop !== null && ui.poeStage.value < 1) ui.poeStage.value = 1;
   }
 
@@ -183,6 +184,8 @@ export class Controller {
   showStop(i: number): void {
     const n = Math.max(0, Math.min(STOPS.length - 1, i));
     if (ui.stop.value !== n) {
+      // A test that was set up but has not started yet belongs to the test being left.
+      clearTimeout(this.pendingStart);
       const t = ui.notebook.value.tests[n]!;
       ui.poeStage.value = t.prediction === null ? 0 : t.result === null ? 1 : t.explanation ? 3 : 2;
     }
@@ -191,11 +194,27 @@ export class Controller {
     history.replaceState(null, '', `#stop=${n + 1}`);
   }
 
-  /** Sets up the open test and starts it once the new world is built (prototype `runStop`). */
-  runStop(): void {
-    const c = STOPS[ui.stop.value ?? 0]!.cfg;
+  /** The first guided test without a result, or test 1 when all are done. */
+  firstUnfinished(): number {
+    const k = ui.notebook.value.tests.findIndex((t) => !t.result);
+    return k < 0 ? 0 : k;
+  }
+
+  /** Opens the guided lab where the student left off: the open test, else the first one not run yet. */
+  resumeGuided(): void {
+    this.showStop(ui.stop.value ?? this.firstUnfinished());
+  }
+
+  /**
+   * Sets up the open test and starts it once the new world is built (prototype `runStop`).
+   * With `compare`, it runs the test's comparison setup instead (Stop.compare).
+   */
+  runStop(compare = false): void {
+    const s = STOPS[ui.stop.value ?? 0]!, c = s.cfg;
+    const second = compare && s.compare ? s.compare : null;
     this.setMode(c.mode);
-    if (c.f !== undefined) this.setF(c.f);
+    if (second) this.setF(second.f);
+    else if (c.f !== undefined) this.setF(c.f);
     this.setG(c.g);
     this.setStress(c.stress);
     this.setType(c.type);
@@ -204,7 +223,7 @@ export class Controller {
     // furniture settles the same amount on every device.
     const t0 = this.lab.sim.simT;
     const wait = (): void => {
-      if (this.lab.sim.simT - t0 >= 0.7) this.start();
+      if (this.lab.sim.simT - t0 >= 0.7) this.start(!!second);
       else this.pendingStart = setTimeout(wait, 50);
     };
     this.pendingStart = setTimeout(wait, 50);
@@ -251,6 +270,18 @@ export class Controller {
     this.view.drama = on;
   }
 
+  /**
+   * Calm motion: no camera shake, flashing or automatic replays, and a slower camera. For
+   * students who get dizzy or prefer less motion. Starts on when the device asks for reduced motion.
+   */
+  setCalm(on: boolean): void {
+    ui.calm.value = on;
+    this.view.setCalm(on);
+    this.setDrama(!on);
+    document.documentElement.classList.toggle('calm', on);
+    try { localStorage.setItem('shake-table-lab.calm', on ? 'on' : 'off'); } catch { /* private mode */ }
+  }
+
   // ---------------------------------------------------------------- navigation
 
   openDialog(name: DialogName | null): void {
@@ -259,6 +290,7 @@ export class Controller {
 
   /** Free mode: closes the guided test panel and the design challenge. */
   explore(): void {
+    clearTimeout(this.pendingStart);
     ui.stop.value = null;
     ui.design.value = false;
     history.replaceState(null, '', location.pathname + location.search);
@@ -373,7 +405,7 @@ export class Controller {
       m: () => this.setSlow(!ui.slow.value),
       p: () => this.toggleReplay(),
       n: () => this.openDialog('notebook'),
-      g: () => this.showStop(ui.stop.value ?? 0),
+      g: () => this.resumeGuided(),
       f: () => this.toggleFullscreen(),
       '?': () => this.openDialog(ui.dialog.value === 'help' ? null : 'help'),
       h: () => this.openDialog('help'),
@@ -461,14 +493,19 @@ export class Controller {
       this.updateNotebook((n) => { n.designs.push(a); n.designs = n.designs.slice(-30); });
       ui.designPrediction.value = null;
       ui.announce.value = a.survived ? `Your design survived, ${a.cost} credits.` : `Your design collapsed. ${a.failure}.`;
+    } else if (run.stop !== null && run.compare) {
+      this.updateNotebook((n) => { n.tests[run.stop!]!.compare = r; });
     } else if (run.stop !== null) {
       this.updateNotebook((n) => { n.tests[run.stop!]!.result = r; });
       if (ui.stop.value === run.stop) ui.poeStage.value = Math.max(ui.poeStage.value, 2);
     } else {
       this.updateNotebook((n) => { n.explore.push(r); n.explore = n.explore.slice(-20); });
     }
-    toast('Results saved to your notebook', 2500);
-    if (run.failT !== null && ui.drama.value) this.instantReplay(run.failT);
+    // A run can end after the student has moved on. Then say where its results went, and do
+    // not jump into a replay of something they are no longer looking at.
+    const here = run.design ? ui.design.value : ui.stop.value === run.stop && !ui.design.value;
+    toast(here || run.stop === null ? 'Results saved to your notebook' : `Test ${run.stop + 1} results saved to your notebook`, 2500);
+    if (here && run.failT !== null && ui.drama.value) this.instantReplay(run.failT);
   }
 
   /** Slow-motion replay from just before a collapse. */

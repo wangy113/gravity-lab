@@ -55,7 +55,7 @@ export const POE: PoeStep[] = [
       answer: 2,
       why: 'Strength alone does not decide damage. Frequency matters too, and 3 Hz is far from your building\'s natural beat.',
     },
-    explain: 'Then press Reset, set Frequency to 1.2 Hz and shake again. Use both results to explain what decides whether shaking is destructive.',
+    explain: 'Press Shake at 1.2 Hz, then compare the two runs. Use both results to explain what decides whether shaking is destructive.',
   },
   {
     objective: 'Relate a building\'s stiffness to its natural frequency and its damage.',
@@ -77,7 +77,7 @@ export const POE: PoeStep[] = [
       answer: 2,
       why: 'The bearings are soft side to side, so the ground moves under your building while the floors above move slowly and gently.',
     },
-    explain: 'Watch the crates on floor 2, then the bearings in Orbit view. Where did the motion go? Use the story drift readouts as evidence.',
+    explain: 'Watch the crates on floor 2, then the bearings in the Orbit camera. Where did the motion go? Use the story drift readouts as evidence.',
   },
   {
     objective: 'Identify nonstructural hazards and the order things fail in.',

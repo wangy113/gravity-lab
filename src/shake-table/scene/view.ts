@@ -34,7 +34,8 @@ export class LabView {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.PerspectiveCamera;
   readonly controls: OrbitControls;
-  readonly reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /** No camera shake and a steady beacon. From the device setting, or Calm motion (setCalm). */
+  reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   camMode: CameraMode = 'orbit';
   stress = true;
   /** Stronger camera shake, a warning beacon and bigger dust, for demos. */
@@ -84,7 +85,8 @@ export class LabView {
     this.camera.position.set(12.5, 3.3, 14.5);
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.target.set(-0.3, 2.7, 0);
-    Object.assign(this.controls, { enableDamping: true, maxPolarAngle: Math.PI * 0.49, minDistance: 3, maxDistance: 26 });
+    // A little slower than the defaults, since touch mice and trackpads send many small scrolls.
+    Object.assign(this.controls, { enableDamping: true, maxPolarAngle: Math.PI * 0.49, minDistance: 3, maxDistance: 26, rotateSpeed: 0.8, zoomSpeed: 0.7 });
     this.controls.addEventListener('change', () => (this.dirty = true));
 
     const sun = this.sun;
@@ -478,6 +480,13 @@ export class LabView {
   }
 
   // ---------------------------------------------------------------- cameras
+
+  /** Calm motion: no camera shake and a slower orbit and zoom. The device setting for reduced motion always wins. */
+  setCalm(on: boolean): void {
+    this.reduceMotion = on || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    Object.assign(this.controls, on ? { rotateSpeed: 0.5, zoomSpeed: 0.45 } : { rotateSpeed: 0.8, zoomSpeed: 0.7 });
+    this.dirty = true;
+  }
 
   setCamera(mode: CameraMode): void {
     this.dirty = true;
