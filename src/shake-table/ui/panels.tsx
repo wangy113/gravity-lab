@@ -7,7 +7,7 @@ import { STOPS, TAG_NAMES } from '../tour.ts';
 import { resultFigure, STOP_FIGURES } from '../concept-figures.ts';
 import { figureHtml } from '../figure.ts';
 import { TIERS } from '../../core/render/quality.ts';
-import { Dialog, Seg, type Ctl } from './app.tsx';
+import { Dialog, Seg, Switch, type Ctl } from './app.tsx';
 import { ui } from './store.ts';
 
 // ------------------------------------------------------------------ guided lab
@@ -36,6 +36,25 @@ export function ReadAloud({ text, id }: { text: string; id?: string }) {
   return <button type="button" class="btn listen" id={id} aria-pressed={speaking} onClick={toggle}>{speaking ? 'Stop reading' : 'Listen while you look'}</button>;
 }
 
+/**
+ * The view and replay controls a test's instructions name. The control room is hidden during a
+ * guided test, so the panel carries every control its words ask the student to use.
+ */
+function TestTools({ ctl }: Ctl) {
+  return (
+    <div class="tools" role="group" aria-label="Watch the test">
+      <div>
+        <div class="lbl">Camera</div>
+        <Seg id="pCam" label="Camera" value={ui.cam.value} onPick={(v) => ctl.setCamera(v)} options={[['orbit', 'Orbit'], ['side', 'High speed'], ['ride', 'Ride floor 2']]} />
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="pReplay" onClick={() => ctl.toggleReplay()}>{ui.replayOn.value ? 'Back to live' : 'Replay'}</button>
+        <Switch id="pSlow" label="Slow-mo" on={ui.slow.value} onToggle={(v) => ctl.setSlow(v)} />
+      </div>
+    </div>
+  );
+}
+
 export function GuidePanel({ ctl }: Ctl) {
   const i = ui.stop.value;
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -46,6 +65,10 @@ export function GuidePanel({ ctl }: Ctl) {
   const s = STOPS[i]!, p = POE[i]!, entry = ui.notebook.value.tests[i]!;
   const stage = ui.poeStage.value;
   const showWhy = why || !!entry.explanation;
+  const tests = ui.notebook.value.tests;
+  // Where Next goes, named on the button so it is never a surprise. After the last test it goes
+  // back to the first one not run yet.
+  const next = i < STOPS.length - 1 ? i + 1 : tests.findIndex((t, k) => k !== i && !t.result);
   return (
     <aside class="panel card" id="panel" aria-labelledby="pTitle">
       <button type="button" class="close" id="pClose" aria-label="Close the guided lab" onClick={() => ctl.explore()}>&times;</button>
@@ -55,7 +78,7 @@ export function GuidePanel({ ctl }: Ctl) {
       </div>
       <ol class="dots" aria-label="Your progress">
         {STOPS.map((_, k) => (
-          <li><button type="button" class={`dot${k === i ? ' here' : ''}${ui.notebook.value.tests[k]!.result ? ' done' : ''}`} aria-label={`Test ${k + 1}${ui.notebook.value.tests[k]!.result ? ', done' : ''}`} aria-current={k === i ? 'step' : undefined} onClick={() => ctl.showStop(k)} /></li>
+          <li><button type="button" class={`dot${k === i ? ' here' : ''}${tests[k]!.result ? ' done' : ''}`} aria-label={`Test ${k + 1}${tests[k]!.result ? ', done' : ''}`} title={`Test ${k + 1}. ${STOPS[k]!.title}`} aria-current={k === i ? 'step' : undefined} onClick={() => ctl.showStop(k)}>{k + 1}</button></li>
         ))}
       </ol>
       <h2 id="pTitle" tabIndex={-1} ref={titleRef}>{s.title}</h2>
@@ -104,6 +127,7 @@ export function GuidePanel({ ctl }: Ctl) {
             <button type="button" class="btn primary big" id="pRun" onClick={() => ctl.runStop()}>{ui.tableLive.value ? 'Test running' : entry.result ? 'Run it again' : 'Run this test'}</button>
             {entry.result && <button type="button" class="btn" onClick={() => ctl.setPoeStage(2)}>See what happened</button>}
           </div>
+          <TestTools ctl={ctl} />
         </div>
       )}
 
@@ -120,6 +144,7 @@ export function GuidePanel({ ctl }: Ctl) {
                 </p>
               )}
               <p class="hint">Want another look? Press Replay to watch it at 0.25x, and drag on the chart to jump to any moment.</p>
+              <TestTools ctl={ctl} />
               {!showWhy ? (
                 <div class="row"><button type="button" class="btn primary" id="oWhy" onClick={() => setWhy(true)}>Next: see why it happened</button></div>
               ) : (
@@ -147,21 +172,33 @@ export function GuidePanel({ ctl }: Ctl) {
             <summary>Show the diagrams again</summary>
             <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup, 'panel') + figureHtml(resultFigure(i, entry.result), 'panel') }} />
           </details>
+          {s.compare && (
+            <section class="compare" id="pCompare" aria-labelledby="pCompareT">
+              <h3 id="pCompareT">{s.compare.label}</h3>
+              {entry.compare
+                ? <ul class="data">{describeResult(entry.compare).map((l) => <li>{l}</li>)}</ul>
+                : <p>Same building and the same strength, now at {s.compare.f} Hz. The results land here and in your notebook.</p>}
+              <div class="row">
+                <button type="button" class="btn primary" id="pCompareRun" onClick={() => ctl.runStop(true)}>{ui.tableLive.value ? 'Test running' : `${entry.compare ? 'Shake again' : 'Shake'} at ${s.compare.f} Hz`}</button>
+              </div>
+            </section>
+          )}
           <label class="lbl" for={`explain${i}`}>{p.explain}</label>
           <textarea id={`explain${i}`} rows={6} value={entry.explanation} placeholder={'Claim: what happened?\nEvidence: which numbers or observations show it?\nReasoning: what science explains it?'}
             onInput={(e) => ctl.setExplanation(i, e.currentTarget.value)} />
           <p class="hint">Saved to your notebook as you type.</p>
           <div class="row">
-            {i < STOPS.length - 1
-              ? <button type="button" class="btn primary" id="pNext" onClick={() => ctl.showStop(i + 1)}>Next test</button>
+            {next >= 0
+              ? <button type="button" class="btn primary" id="pNext" onClick={() => ctl.showStop(next)}>{next > i ? `Next: test ${next + 1}, ${STOPS[next]!.title}` : `Back to test ${next + 1}, not run yet`}</button>
               : <button type="button" class="btn primary" onClick={() => ctl.openDialog('notebook')}>Finish: open my notebook</button>}
           </div>
         </div>
       )}
 
       <div class="row foot">
-        <button type="button" class="btn" id="pPrev" disabled={i === 0} onClick={() => ctl.showStop(i - 1)}>Previous test</button>
-        <button type="button" class="btn" id="pNextTest" disabled={i === STOPS.length - 1} onClick={() => ctl.showStop(i + 1)}>Skip to next test</button>
+        <button type="button" class="btn" id="pPrev" disabled={i === 0} onClick={() => ctl.showStop(i - 1)}>{i === 0 ? 'Previous test' : `Back to test ${i}`}</button>
+        <button type="button" class="btn" id="pNextTest" disabled={i === STOPS.length - 1} onClick={() => ctl.showStop(i + 1)}>{i === STOPS.length - 1 ? 'Skip to next test' : `Skip to test ${i + 2}`}</button>
+        <button type="button" class="btn" id="pText" onClick={() => ctl.openDialog('text')}>Text version</button>
       </div>
     </aside>
   );
@@ -284,7 +321,8 @@ export function InstructorsDialog({ ctl }: Ctl) {
       <ul>
         <li>Works with the keyboard alone. Press the question mark key for shortcuts.</li>
         <li>A text version of every test. Cracks and failures always show on screen as well as in sound, so sound is never required. Calmer motion when the device asks for reduced motion.</li>
-        <li>Dramatic effects and sound can be switched off in Help.</li>
+        <li>Students choose Calm motion and sound on the start screen, before anything moves, and can change them in Help. Calm motion turns off camera shake, flashing and automatic replays.</li>
+        <li>Every control a guided test names is in the lab panel itself, so students never hunt for a hidden control.</li>
         <li>No accounts, cookies or analytics. Notebooks stay on the student's device until they download them.</li>
       </ul>
       <div class="row">
@@ -322,21 +360,24 @@ export function HelpDialog({ ctl }: Ctl) {
       <p>Drag to turn the view, scroll or pinch to zoom, or use the camera buttons at the bottom right.</p>
       <p><b>Replay</b> plays the last 40 s again in slow motion. The chart then shows the whole test, with each failure marked in red. Drag on the chart to jump to any moment, and the instruments show what they measured then.</p>
       <h2>Keyboard shortcuts</h2>
-      <button type="button" class="btn" id="shortcutsBtn" aria-pressed={ui.shortcuts.value} onClick={() => ctl.setShortcuts(!ui.shortcuts.value)}>Single-key shortcuts {ui.shortcuts.value ? 'on' : 'off'}</button>
+      <Switch id="shortcutsBtn" label="Single-key shortcuts" on={ui.shortcuts.value} onToggle={(v) => ctl.setShortcuts(v)} />
       <p class="hint">Turn these off if you use speech input or a screen reader that sends letter keys.</p>
       <table class="runs keys"><tbody>{SHORTCUTS.map(([k, v]) => <tr><td><kbd>{k}</kbd></td><td>{v}</td></tr>)}</tbody></table>
       <h2>Settings</h2>
       <div class="lbl">Graphics quality (physics is the same at every level)</div>
       <Seg id="segQuality" label="Graphics quality" value={ui.quality.value} onPick={(v) => void ctl.setQuality(v)}
-        options={[['auto', `Auto (${TIERS[ui.tier.value].label})`], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']]} />
+        options={[['auto', 'Auto'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']]} />
+      <p class="hint" id="qualityNow">The highlighted choice is the one in use. The lab is drawing at {TIERS[ui.tier.value].label} quality now.</p>
       <div class="row">
-        <button type="button" class="btn" id="dramaBtn" aria-pressed={ui.drama.value} onClick={() => ctl.setDrama(!ui.drama.value)}>Dramatic effects {ui.drama.value ? 'on' : 'off'}</button>
-        <button type="button" class="btn" aria-pressed={ui.sound.value} onClick={() => ctl.setSound(!ui.sound.value)}>Sound {ui.sound.value ? 'on' : 'off'}</button>
+        <Switch id="calmBtn" label="Calm motion" on={ui.calm.value} onToggle={(v) => ctl.setCalm(v)} />
+        <Switch id="dramaBtn" label="Dramatic effects" on={ui.drama.value} onToggle={(v) => ctl.setDrama(v)} />
+        <Switch label="Sound" on={ui.sound.value} onToggle={(v) => ctl.setSound(v)} />
       </div>
+      <p class="hint">Calm motion turns off camera shake, flashing and automatic replays, and slows the camera. Each switch shows whether it is on or off right now.</p>
       <h2>More</h2>
       <div class="row">
         <button type="button" class="btn" id="textBtn" onClick={() => ctl.openDialog('text')}>Text version</button>
-        <button type="button" class="btn" id="aboutBtn" onClick={() => ctl.openDialog('about')}>About and sources</button>
+        <button type="button" class="btn" id="aboutBtn" onClick={() => ctl.openDialog('about')}>About this lab</button>
         <button type="button" class="btn" onClick={() => ctl.openDialog('intro')}>Start screen</button>
       </div>
     </Dialog>

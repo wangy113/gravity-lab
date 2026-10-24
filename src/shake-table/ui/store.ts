@@ -20,6 +20,11 @@ export const ui = {
   drama: signal(true),
   /** Single-key shortcuts, which can be turned off (WCAG 2.1.4). Remembered in this browser. */
   shortcuts: signal(((): boolean => { try { return localStorage.getItem('shake-table-lab.shortcuts') !== 'off'; } catch { return true; } })()),
+  /** Calm motion (Controller.setCalm). Remembered in this browser, and on by default when the device asks for reduced motion. */
+  calm: signal(((): boolean => {
+    try { const v = localStorage.getItem('shake-table-lab.calm'); if (v) return v === 'on'; } catch { /* private mode */ }
+    return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  })()),
   quality: signal<TierChoice>('auto'),
   tier: signal<Tier>('medium'),
   slow: signal(false),

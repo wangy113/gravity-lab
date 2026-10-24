@@ -19,6 +19,8 @@ export interface Stop {
   /** Interesting real world facts that are not needed for the prediction. Kept out of the main reading (coherence). */
   aside?: string;
   notice: string;
+  /** A second run to compare with the first, started from a button in the panel, so no hidden control is needed. */
+  compare?: { f: number; label: string };
 }
 
 export const TAG_NAMES: Record<Tag, string> = { real: 'Real world', model: 'Model' };
@@ -37,8 +39,9 @@ export const STOPS: Stop[] = [
     notice: 'Keep an eye on the Roof swing readout and the chart. At what frequency does your roof swing hardest? Compare it with the natural beat.' },
   { title: 'Same strength, different beat', tags: ['model'], cfg: { type: 'bare', mode: 'steady', f: 3.0, g: 0.2, cam: 'orbit', stress: true },
     terms: ['strength', 'frequency'],
-    body: `<p>Now the table shakes at 3 Hz with the same ${term('strength')} as before. Only the ${term('frequency')} is different, and 3 Hz is far from your building's beat.</p><p>When it is done, press Reset, set Frequency to 1.2 Hz and press Shake again.</p>`,
-    notice: 'Why can the same strength of shaking do almost nothing at one frequency and bring your building down at another?' },
+    body: `<p>Now the table shakes at 3 Hz with the same ${term('strength')} as before. Only the ${term('frequency')} is different, and 3 Hz is far from your building's beat.</p><p>When it is done, you will shake it again at 1.2 Hz with one button and compare the two runs.</p>`,
+    notice: 'Why can the same strength of shaking do almost nothing at one frequency and bring your building down at another?',
+    compare: { f: 1.2, label: 'Same strength at 1.2 Hz' } },
   { title: 'Brace it', tags: ['model', 'real'], cfg: { type: 'braced', mode: 'sweep', g: 0.2, cam: 'side', stress: true },
     terms: ['X-brace', 'stiffness'],
     body: `<p>Steel ${term('X-braces')} make each story about six times stiffer. More ${term('stiffness')} gives your building a faster natural beat, so the danger zone moves up the frequency scale.</p>`,
@@ -48,10 +51,10 @@ export const STOPS: Stop[] = [
     terms: ['base isolation', 'rubber bearing', 'drift'],
     body: `<p>${term('Base isolation')} sets the whole building on ${term('rubber bearings')}. The bearings are soft side to side, so the ground moves under your building while the floors above move slowly and gently.</p><p>The camera rides along with you on floor 2. The story ${term('drift')} readouts show how far each story leans.</p>`,
     aside: `<p>San Francisco City Hall was retrofitted with base isolators after the 1989 Loma Prieta earthquake.</p>`,
-    notice: 'Watch the crates on floor 2 with you. Then switch to Orbit and watch the black bearings. Where did the motion go?' },
+    notice: 'Watch the crates on floor 2 with you. Then pick Orbit under Camera in this panel and watch the black bearings. Where did the motion go?' },
   { title: 'What falls first', tags: ['real', 'model'], cfg: { type: 'bare', mode: 'quake', g: 0.4, cam: 'orbit', stress: true },
     terms: ['structure', 'nonstructural parts'],
     body: `<p>The block wall on the right has no steel inside. Furniture, shelves and ceilings are not part of the ${term('structure')} either. Engineers call these ${term('nonstructural parts')}, and they are what hurts people in a room.</p>`,
     aside: `<p>In studies of offices, hotels and hospitals, nonstructural parts made up about half to 70 percent of a building's cost.</p>`,
-    notice: 'After the quake, press Replay and pick 0.25x. Name three things in this scene that would hurt someone standing nearby.' },
+    notice: 'After the quake, press Replay in this panel to watch it again at 0.25x. Name three things in this scene that would hurt someone standing nearby.' },
 ];

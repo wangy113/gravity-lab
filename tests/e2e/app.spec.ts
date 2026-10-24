@@ -195,3 +195,51 @@ test('the design challenge builds, tests and files a design in the notebook', as
   await page.click('#notebookBtn');
   await expect(page.locator('#nbDesigns')).toContainText('Heavy, heavy, light');
 });
+
+test('the guided lab picks up at the first test not run yet, and its buttons say where they go', async ({ page }) => {
+  await boot(page);
+  await expect(page.locator('#introM')).toBeVisible();
+  // Tests 1 and 2 are done, as if the student had come back another day.
+  await page.evaluate(() => {
+    const { ui } = (window as any).__lab;
+    const r = { at: '', building: 'Bare frame', shaking: 'Steady', strength: 0.15, frequency: 3, peakRoofCm: 4, peakRoofHz: 3, peakTableG: 0.15, naturalBeatHz: 1.2, failure: '', wallBlocksDown: 0 };
+    ui.notebook.value = { ...ui.notebook.value, tests: ui.notebook.value.tests.map((t: object, k: number) => (k < 2 ? { ...t, prediction: 0, result: r } : t)) };
+  });
+  await expect(page.locator('#introGuide')).toContainText('Continue the guided lab');
+  await expect(page.locator('#introGuide')).toContainText('Next up is test 3');
+  await page.click('#introGuide');
+  await expect(page.locator('#pTitle')).toHaveText('Same strength, different beat');
+  await expect(page.locator('#pNextTest')).toHaveText('Skip to test 4');
+  await expect(page.locator('.dot').nth(0)).toHaveText('1');
+  // From the last test, Next goes back to the first one not run yet, and says so.
+  await page.locator('.dot').nth(5).click();
+  await page.evaluate(() => (window as any).__lab.ctl.setPoeStage(3));
+  await expect(page.locator('#pNext')).toHaveText('Back to test 3, not run yet');
+  // Test 3 asks for a second run at 1.2 Hz, and the panel has the button for it.
+  await page.locator('#pNext').click();
+  await page.evaluate(() => (window as any).__lab.ctl.setPoeStage(3));
+  await expect(page.locator('#pCompareRun')).toHaveText('Shake at 1.2 Hz');
+  await expect(page.locator('#pNext')).toHaveText('Next: test 4, Brace it');
+});
+
+test('switches show their state, and the guided panel has the controls its words name', async ({ page }) => {
+  await boot(page);
+  await expect(page.locator('#introM')).toBeVisible();
+  // Calm motion can be chosen on the start screen, before anything moves.
+  await page.click('#introCalm');
+  await expect(page.locator('#introCalm')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => { const L = (window as any).__lab; return [L.view.reduceMotion, L.ui.drama.value]; })).toEqual([true, false]);
+  await page.click('#introFree');
+  await expect(page.locator('#introM')).toBeHidden();
+  // The label names the setting and stays the same. The chip shows the state.
+  await expect(page.locator('#soundBtn')).toHaveAccessibleName('Sound');
+  await expect(page.locator('#soundBtn .state')).toHaveText('On');
+  await page.click('#soundBtn');
+  await expect(page.locator('#soundBtn')).toHaveAccessibleName('Sound');
+  await expect(page.locator('#soundBtn .state')).toHaveText('Off');
+  await expect(page.locator('#soundBtn')).toHaveAttribute('aria-pressed', 'false');
+  // Test 5 asks the student to switch to Orbit, and test 6 to press Replay.
+  await page.evaluate(() => { const { ctl } = (window as any).__lab; ctl.showStop(4); ctl.setPoeStage(1); });
+  await expect(page.locator('#pCam button[data-v="orbit"]')).toHaveText('Orbit');
+  await expect(page.locator('#pReplay')).toHaveText('Replay');
+});

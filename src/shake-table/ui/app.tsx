@@ -23,6 +23,18 @@ export function Seg<T extends string | number>(p: { id: string; label: string; v
   );
 }
 
+/**
+ * An on and off setting. The label names the setting and stays the same, and a chip shows the
+ * state, so nobody has to guess whether "Sound off" is the state or the action.
+ */
+export function Switch(p: { id?: string; label: string; on: boolean; onToggle: (on: boolean) => void }) {
+  return (
+    <button type="button" class="btn switch" id={p.id} aria-pressed={p.on} onClick={() => p.onToggle(!p.on)}>
+      {p.label}<span class="state" aria-hidden="true">{p.on ? 'On' : 'Off'}</span>
+    </button>
+  );
+}
+
 function Header({ ctl }: Ctl) {
   const done = ui.notebook.value.tests.filter((t) => t.result).length;
   const guided = ui.stop.value !== null;
@@ -35,14 +47,14 @@ function Header({ ctl }: Ctl) {
       {ui.tableLive.value && <div class="live" role="status"><i />TABLE LIVE</div>}
       <div class="spacer" />
       <nav class="nav card" aria-label="Lab sections">
-        <button type="button" class="navbtn" id="guideBtn" aria-pressed={guided} onClick={() => ctl.showStop(ui.stop.value ?? 0)}>Guided lab</button>
+        <button type="button" class="navbtn" id="guideBtn" aria-pressed={guided} onClick={() => ctl.resumeGuided()}>Guided lab</button>
         <button type="button" class="navbtn" id="designBtn" aria-pressed={ui.design.value} onClick={() => ctl.openDesign()}>Design challenge</button>
         <button type="button" class="navbtn" id="exploreBtn" aria-pressed={!guided && !ui.design.value} onClick={() => ctl.explore()}>Explore</button>
         <button type="button" class="navbtn" id="notebookBtn" onClick={() => ctl.openDialog('notebook')}>Notebook <span class="badge">{done}/{STOPS.length}</span></button>
         <button type="button" class="navbtn" id="teachBtn" onClick={() => ctl.openDialog('instructors')}>For instructors</button>
         <button type="button" class="navbtn" id="helpBtn" onClick={() => ctl.openDialog('help')}>Help</button>
       </nav>
-      <button type="button" class="btn" id="soundBtn" aria-pressed={ui.sound.value} onClick={() => ctl.setSound(!ui.sound.value)}>{ui.sound.value ? 'Sound on' : 'Sound off'}</button>
+      <Switch id="soundBtn" label="Sound" on={ui.sound.value} onToggle={(v) => ctl.setSound(v)} />
       <button type="button" class="btn" id="fullBtn" onClick={() => ctl.toggleFullscreen()}>Full screen</button>
     </header>
   );
@@ -76,14 +88,14 @@ function ControlRoom({ ctl }: Ctl) {
       <button type="button" id="shakeBtn" class={`shake${ui.shaking.value ? ' on' : ''}`} onClick={() => ctl.toggleShake()}>{ui.shaking.value ? 'Stop' : 'Shake'}</button>
       <div class="row3">
         <button type="button" id="resetBtn" class="btn" onClick={() => ctl.setType(ui.type.value)}>Reset</button>
-        <button type="button" id="slowBtn" class="btn" aria-pressed={ui.slow.value} onClick={() => ctl.setSlow(!ui.slow.value)}>Slow-mo</button>
+        <Switch id="slowBtn" label="Slow-mo" on={ui.slow.value} onToggle={(v) => ctl.setSlow(v)} />
         <button type="button" id="replayBtn" class="btn" aria-pressed={ui.replayOn.value} onClick={() => ctl.toggleReplay()}>Replay</button>
       </div>
       <div class="group"><div class="lbl">Camera</div>
         <Seg id="segCam" label="Camera" value={ui.cam.value} onPick={(v) => ctl.setCamera(v)} options={[['orbit', 'Orbit'], ['side', 'High speed'], ['ride', 'Ride floor 2']]} />
       </div>
       <div class="two">
-        <button type="button" id="stressBtn" class="btn" aria-pressed={ui.stress.value} onClick={() => ctl.setStress(!ui.stress.value)}>Stress colors</button>
+        <Switch id="stressBtn" label="Stress colors" on={ui.stress.value} onToggle={(v) => ctl.setStress(v)} />
         <label><span class="lbl">Lighting</span>
           <select id="hall" value={ui.hall.value} onChange={(e) => void ctl.setHall(e.currentTarget.value)}>
             <option value="aircraft">Daylight</option><option value="hangar">Work lights</option><option value="foundry">Warm evening</option>
@@ -175,13 +187,18 @@ export function Dialog(p: { name: DialogName; labelledBy: string; closable?: boo
 
 function IntroDialog({ ctl }: Ctl) {
   const go = (fn: () => void) => () => { ui.dialog.value = null; ctl.synth.init(); fn(); };
+  // A returning student picks up where they left off, and the button says where that is.
+  const tests = ui.notebook.value.tests, done = tests.filter((t) => t.result).length;
+  const started = tests.some((t) => t.prediction !== null || t.result), next = ctl.firstUnfinished();
   return (
     <Dialog name="intro" labelledBy="introT" closable={false}>
       <h1 id="introT">Shake Table Lab</h1>
       <p>Engineers find out how a building fails by shaking it on a giant steel table before a real earthquake does. Here you run the table.</p>
       <div class="choices">
-        <button type="button" class="choice primary" id="introGuide" onClick={go(() => ctl.showStop(0))}>
-          <b>Start the guided lab</b><span>6 short tests, about 30 minutes. For each one you predict, test, observe and explain.</span>
+        <button type="button" class="choice primary" id="introGuide" onClick={go(() => ctl.resumeGuided())}>
+          {started && done < STOPS.length
+            ? <><b>Continue the guided lab</b><span>{done} of {STOPS.length} tests done. Next up is test {next + 1}, {STOPS[next]!.title}.</span></>
+            : <><b>Start the guided lab</b><span>6 short tests, about 30 minutes. For each one you predict, test, observe and explain.</span></>}
         </button>
         <button type="button" class="choice" id="introDesign" onClick={go(() => ctl.openDesign())}>
           <b>Take the design challenge</b><span>Build your own building on a budget and see if it survives a quake.</span>
@@ -193,11 +210,20 @@ function IntroDialog({ ctl }: Ctl) {
           <b>For instructors</b><span>How this works as an online science lab: objectives, teaching model and assessment.</span>
         </button>
       </div>
+      <section class="comfort" aria-labelledby="comfortT">
+        <h2 id="comfortT">Choose how the lab moves and sounds</h2>
+        <div class="row">
+          <Switch id="introCalm" label="Calm motion" on={ui.calm.value} onToggle={(v) => ctl.setCalm(v)} />
+          <Switch id="introSound" label="Sound" on={ui.sound.value} onToggle={(v) => ctl.setSound(v)} />
+          <button type="button" class="btn" id="introText" onClick={go(() => ctl.openDialog('text'))}>Read the text version</button>
+        </div>
+        <p class="hint">Calm motion turns off camera shake, flashing and automatic replays, and slows the camera. Sound is never needed, because every crack and failure also shows on screen. You can change these any time in Help.</p>
+      </section>
       <div class="legendT">
         <div><span class="tag real">Real world</span> facts about real labs and real buildings</div>
         <div><span class="tag model">Model</span> what this simulation shows, with simplified physics</div>
       </div>
-      <p class="hint">Drag to look around and scroll to zoom. Press the question mark key for keyboard shortcuts.</p>
+      <p class="hint">Drag to look around, and scroll or pinch to zoom. The arrow keys and the camera buttons at the bottom right do the same. Press the question mark key for all keyboard shortcuts.</p>
     </Dialog>
   );
 }

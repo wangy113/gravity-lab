@@ -120,8 +120,8 @@
 .rightcol .ro b { font-size: 18px; }
 .objective { background: rgba(76,201,240,.12); border-left: 4px solid var(--cyan); padding: 6px 10px; border-radius: 6px; font-size: 15px; margin: 4px 0 10px; }
 .dots { display: flex; gap: 6px; list-style: none; padding: 0; margin: 8px 0 2px; }
-.dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line-2); background: transparent; background-clip: content-box; cursor: pointer; padding: 3px; } /* 24px touch target, WCAG 2.5.8 */
-.dot.done { background-color: var(--green); border-color: var(--green); }
+.dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line-2); background: transparent; cursor: pointer; padding: 0; display: grid; place-items: center; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--muted); } /* at least 24px, WCAG 2.5.8 */
+.dot.done { background-color: var(--green); border-color: var(--green); color: #06130a; }
 .dot.here { outline: 2px solid var(--amber); outline-offset: 2px; }
 .poe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; list-style: none; padding: 4px; margin: 0 0 12px; background: rgba(0,0,0,.3); border-radius: 10px; }
 .poestep { width: 100%; background: transparent; border: 0; border-radius: 7px; padding: 7px 2px; font-weight: 700; font-size: 13px; color: var(--muted); cursor: pointer; }
@@ -183,6 +183,7 @@ kbd { font-family: "JetBrains Mono", monospace; font-size: 13px; padding: 2px 7p
   80% { transform: translateX(calc(-50% + 4px)); }
 }
 @media (prefers-reduced-motion: reduce) { .banner.alarm, .live i { animation: none; } }
+.calm .banner.alarm, .calm .live i { animation: none; }
 .stresslegend { margin-top: 8px; }
 .stresslegend .ramp { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #33ff40 0%, #d6ff40 40%, #ffc040 70%, #ff1a40 100%); }
 .stresslegend .ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 3px; }
@@ -247,3 +248,18 @@ b.term { color: var(--cyan); }
 .realworld summary { cursor: pointer; font-weight: 700; }
 .why { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
 .why .explain { line-height: 1.45; }
+
+/* ---------------------------------------------------------------- on and off switches */
+/* The label names the setting and never changes. The chip shows its state, so the button never reads as an action. */
+.switch { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex-wrap: wrap; }
+.switch .state { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 2px 7px; background: rgba(0,0,0,.35); color: var(--muted); }
+.switch[aria-pressed="true"] .state { background: rgba(6,19,26,.85); color: var(--cyan); }
+.row3 .switch { gap: 4px; }
+
+/* ---------------------------------------------------------------- guided lab tools and the start screen's comfort settings */
+.tools { display: grid; gap: 8px; margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.tools .row { margin-top: 0; }
+.comfort { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 4px; }
+.comfort h2 { font-size: 18px; margin: 10px 0 4px; }
+.comfort .row, .modal .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.compare { margin-top: 10px; }
