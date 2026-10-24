@@ -233,3 +233,17 @@ figure.fig figcaption { color: var(--muted); font-size: 14px; line-height: 1.4; 
 .figrecall { margin: 0 0 10px; }
 .figrecall summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--cyan); }
 .hints figure.fig { margin-top: 6px; }
+figure.fig figcaption.cue { color: var(--amber); font-weight: 700; margin: 0 0 6px; }
+
+/* ---------------------------------------------------------------- multimedia learning (Mayer): key words, signals, segments */
+.keywords { margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: rgba(0,0,0,.2); }
+.keywords h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
+.keywords dl, dl.glossary { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 10px; font-size: 14px; line-height: 1.4; }
+.keywords dt, dl.glossary dt { font-weight: 700; color: var(--cyan); }
+.keywords dd, dl.glossary dd { margin: 0; }
+b.term { color: var(--cyan); }
+.btn.listen { margin: 0 0 10px; }
+.realworld { margin-top: 12px; font-size: 14px; }
+.realworld summary { cursor: pointer; font-weight: 700; }
+.why { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.why .explain { line-height: 1.45; }

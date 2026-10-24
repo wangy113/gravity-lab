@@ -31,7 +31,7 @@ export const POE: PoeStep[] = [
       question: 'The table will shake steadily at 3 Hz. What will the building do?',
       options: ['Sway hard and crack', 'Move with the table and barely bend', 'Collapse'],
       answer: 1,
-      why: '3 Hz is far from this building\'s natural beat of about 1.2 Hz, so each push does not build on the last one.',
+      why: '3 Hz is far from your building\'s natural beat of about 1.2 Hz, so each push does not build on the last one.',
     },
     explain: 'Which parts moved with the table, and which lagged behind? Use the chrome rods and the roof swing readout as evidence.',
   },
@@ -53,7 +53,7 @@ export const POE: PoeStep[] = [
       question: 'Same strength as the sweep, but steady at 3 Hz. What happens?',
       options: ['The building collapses', 'The building cracks but stands', 'The building barely moves'],
       answer: 2,
-      why: 'Strength alone does not decide damage. Frequency matters: 3 Hz is far from the natural beat.',
+      why: 'Strength alone does not decide damage. Frequency matters too, and 3 Hz is far from your building\'s natural beat.',
     },
     explain: 'Then press Reset, set Frequency to 1.2 Hz and shake again. Use both results to explain what decides whether shaking is destructive.',
   },
@@ -75,7 +75,7 @@ export const POE: PoeStep[] = [
       question: 'The building sits on soft rubber bearings. Compared with the ground, how much will floor 2 move?',
       options: ['More than the ground', 'About the same', 'Much less than the ground'],
       answer: 2,
-      why: 'The bearings are soft side to side, so the ground moves under the building while the floors above move slowly and gently.',
+      why: 'The bearings are soft side to side, so the ground moves under your building while the floors above move slowly and gently.',
     },
     explain: 'Watch the crates on floor 2, then the bearings in Orbit view. Where did the motion go? Use the story drift readouts as evidence.',
   },
@@ -93,4 +93,43 @@ export const POE: PoeStep[] = [
 ];
 
 export const POE_STEPS = ['Predict', 'Test', 'Observe', 'Explain'] as const;
+
+/**
+ * Multimedia learning (Mayer). The diagrams give each idea in words and pictures (dual
+ * coding, figure.ts). These rules decide how the words and pictures are put together:
+ *
+ * - Pre-training: the key words of a test are defined before its reading (GLOSSARY).
+ * - Signaling: key words are marked in the reading, and each diagram in the panel opens
+ *   with a short cue that says where to look.
+ * - Redundancy: in the panel the cue replaces the full caption, which would repeat the
+ *   reading beside it. The full caption stays in the text version and the report.
+ * - Coherence: side facts that are not needed to predict sit in a closed Real world box.
+ * - Segmenting: Observe comes in two steps the student moves through at their own pace,
+ *   first what was measured, then why it happened.
+ * - Spatial contiguity: the student's own measurement is drawn on the result diagram, and
+ *   the explanation sits right under the diagram it explains.
+ * - Temporal contiguity: the explanation and its diagram appear at the same moment, and
+ *   the Notice cue stays on screen while the test runs.
+ * - Modality: a Listen button reads the words aloud, so the eyes can stay on the diagram.
+ * - Personalization: the text talks to the student, about your building and your run.
+ */
+
+/** Key words, each taught before the test that first uses it. Keys match Stop.terms in tour.ts. */
+export const GLOSSARY: Record<string, string> = {
+  'shake table': 'A steel platform that is pushed back and forth to copy an earthquake.',
+  'actuator': 'A powerful hydraulic piston. Its chrome rod pushes the table.',
+  'story': 'One level of a building, from one floor up to the next.',
+  'natural beat': 'The rhythm a building sways at on its own after a push. Engineers call it the natural frequency.',
+  'resonance': 'Pushing in time with the natural beat, so each push adds to the last swing.',
+  'Hz': 'Hertz, the number of back and forth shakes each second. 2 Hz is two shakes a second.',
+  'strength': 'How hard the table shakes, in g. 0.2 g is one fifth of the pull of gravity.',
+  'frequency': 'How many shakes there are each second, in Hz.',
+  'X-brace': 'Two steel bars crossed inside a story, so the story cannot lean easily.',
+  'stiffness': 'How hard a story is to bend sideways. A stiffer story bends less.',
+  'base isolation': 'Setting the whole building on soft bearings so the ground can move under it.',
+  'rubber bearing': 'A thick pad of rubber and steel layers. It is firm up and down but soft side to side.',
+  'drift': 'How far a story leans compared with its height, as a percent.',
+  'structure': 'The parts that hold a building up: columns, beams, floors and braces.',
+  'nonstructural parts': 'Everything else, such as walls with no steel inside, furniture, shelves and ceilings.',
+};
 export type PoeStage = (typeof POE_STEPS)[number];

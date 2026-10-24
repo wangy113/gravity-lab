@@ -1,10 +1,10 @@
 /** The guided lab panel, notebook, instructor and help pages, camera controls and effects. */
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { attemptLevel, bestDesign, describeResult } from '../notebook.ts';
 import { LEVELS, type LevelId } from '../specimen/design.ts';
-import { OBJECTIVES, POE, POE_STEPS } from '../pedagogy.ts';
+import { GLOSSARY, OBJECTIVES, POE, POE_STEPS } from '../pedagogy.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
-import { STOP_FIGURES } from '../concept-figures.ts';
+import { resultFigure, STOP_FIGURES } from '../concept-figures.ts';
 import { figureHtml } from '../figure.ts';
 import { TIERS } from '../../core/render/quality.ts';
 import { Dialog, Seg, type Ctl } from './app.tsx';
@@ -12,13 +12,40 @@ import { ui } from './store.ts';
 
 // ------------------------------------------------------------------ guided lab
 
+const canSpeak = typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined';
+const plain = (html: string): string => html.replace(/<\/p>/g, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Reads the words aloud, so the student can keep their eyes on the diagram while they hear
+ * the explanation (the modality principle). Hidden where the browser cannot speak.
+ */
+export function ReadAloud({ text, id }: { text: string; id?: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  useEffect(() => () => { if (canSpeak) speechSynthesis.cancel(); }, [text]);
+  if (!canSpeak) return null;
+  const toggle = () => {
+    speechSynthesis.cancel();
+    if (speaking) { setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    speechSynthesis.speak(u);
+  };
+  return <button type="button" class="btn listen" id={id} aria-pressed={speaking} onClick={toggle}>{speaking ? 'Stop reading' : 'Listen while you look'}</button>;
+}
+
 export function GuidePanel({ ctl }: Ctl) {
   const i = ui.stop.value;
   const titleRef = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { if (i !== null) titleRef.current?.focus(); }, [i]);
+  // Observe comes in two steps: what was measured, then why (segmenting).
+  const [why, setWhy] = useState(false);
+  useEffect(() => { if (i !== null) titleRef.current?.focus(); setWhy(false); }, [i]);
   if (i === null) return null;
   const s = STOPS[i]!, p = POE[i]!, entry = ui.notebook.value.tests[i]!;
   const stage = ui.poeStage.value;
+  const showWhy = why || !!entry.explanation;
   return (
     <aside class="panel card" id="panel" aria-labelledby="pTitle">
       <button type="button" class="close" id="pClose" aria-label="Close the guided lab" onClick={() => ctl.explore()}>&times;</button>
@@ -41,8 +68,13 @@ export function GuidePanel({ ctl }: Ctl) {
 
       {stage === 0 && (
         <div class="stage" id="stagePredict">
+          <section class="keywords" id="pTerms" aria-labelledby="pTermsT">
+            <h3 id="pTermsT">Key words for this test</h3>
+            <dl>{s.terms.map((t) => <><dt>{t}</dt><dd>{GLOSSARY[t]}</dd></>)}</dl>
+          </section>
           <div id="pBody" dangerouslySetInnerHTML={{ __html: s.body }} />
-          <div id="pFigure" dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) }} />
+          <div id="pFigure" dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup, 'panel') }} />
+          <ReadAloud text={plain(s.body)} id="pListen" />
           <fieldset class="predict">
             <legend>{p.predict.question}</legend>
             {p.predict.options.map((o, k) => (
@@ -55,6 +87,12 @@ export function GuidePanel({ ctl }: Ctl) {
           <div class="row">
             <button type="button" class="btn primary" id="toTest" disabled={entry.prediction === null} onClick={() => ctl.setPoeStage(1)}>{entry.prediction === null ? 'Make a prediction first' : 'Next: run the test'}</button>
           </div>
+          {s.aside && (
+            <details class="realworld">
+              <summary><span class="tag real">Real world</span> More about this</summary>
+              <div dangerouslySetInnerHTML={{ __html: s.aside }} />
+            </details>
+          )}
         </div>
       )}
 
@@ -73,18 +111,26 @@ export function GuidePanel({ ctl }: Ctl) {
         <div class="stage" id="stageObserve">
           {entry.result ? (
             <>
-              <h3>What the instruments measured</h3>
+              <h3>What your instruments measured</h3>
               <ul class="data">{describeResult(entry.result).map((l) => <li>{l}</li>)}</ul>
               {entry.prediction !== null && (
                 <p class={`feedback ${entry.prediction === p.predict.answer ? 'match' : 'differ'}`}>
-                  <b>{entry.prediction === p.predict.answer ? 'Your prediction matches the model.' : 'Your prediction differs from the model.'}</b>{' '}
-                  You predicted: {p.predict.options[entry.prediction]}. {p.predict.why}
+                  <b>{entry.prediction === p.predict.answer ? 'Nice, your prediction matches the model.' : 'Your prediction differs from the model. Surprises like this are where you learn the most.'}</b>{' '}
+                  You predicted: {p.predict.options[entry.prediction]}.
                 </p>
               )}
-              <p class="hint">Compare what you saw with the diagram. Which label matches each thing you measured?</p>
-              <div id="oFigure" dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.result) }} />
-              <p class="hint">Tip: press Replay to watch it again at 0.25x. In replay the chart shows the whole test with failures in red. Drag on it to jump to any moment.</p>
-              <div class="row"><button type="button" class="btn primary" onClick={() => ctl.setPoeStage(3)}>Next: explain it</button></div>
+              <p class="hint">Want another look? Press Replay to watch it at 0.25x, and drag on the chart to jump to any moment.</p>
+              {!showWhy ? (
+                <div class="row"><button type="button" class="btn primary" id="oWhy" onClick={() => setWhy(true)}>Next: see why it happened</button></div>
+              ) : (
+                <section class="why" id="oWhyPart" aria-labelledby="oWhyT">
+                  <h3 id="oWhyT">Why it happened</h3>
+                  <div id="oFigure" dangerouslySetInnerHTML={{ __html: figureHtml(resultFigure(i, entry.result), 'panel') }} />
+                  <p class="explain" id="oExplain">{p.predict.why}</p>
+                  <ReadAloud text={`${p.predict.why} ${STOP_FIGURES[i]!.result.caption}`} id="oListen" />
+                  <div class="row"><button type="button" class="btn primary" onClick={() => ctl.setPoeStage(3)}>Next: explain it</button></div>
+                </section>
+              )}
             </>
           ) : (
             <>
@@ -99,7 +145,7 @@ export function GuidePanel({ ctl }: Ctl) {
         <div class="stage" id="stageExplain">
           <details class="figrecall">
             <summary>Show the diagrams again</summary>
-            <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) + figureHtml(STOP_FIGURES[i]!.result) }} />
+            <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup, 'panel') + figureHtml(resultFigure(i, entry.result), 'panel') }} />
           </details>
           <label class="lbl" for={`explain${i}`}>{p.explain}</label>
           <textarea id={`explain${i}`} rows={6} value={entry.explanation} placeholder={'Claim: what happened?\nEvidence: which numbers or observations show it?\nReasoning: what science explains it?'}
@@ -208,6 +254,7 @@ export function InstructorsDialog({ ctl }: Ctl) {
         <li><b>Explain.</b> Students write a claim, the evidence for it and their reasoning (claim, evidence, reasoning).</li>
       </ol>
       <p><b>Words and pictures together.</b> Every idea is given twice, following dual coding theory (Paivio): once in words and once as a labeled diagram that uses the same words, such as a response curve that peaks at the natural beat. Students who hold an idea both as words and as an image remember and use it better than with either alone. In Predict a setup diagram sits beside the reading. It pictures the idea but not the outcome, so it does not give the prediction away. In Observe a result diagram sits next to the measured results and the science explanation. Both can be reopened while students write their explanation. Each design hint has its own diagram too. The text version and the lab report include every diagram with a written description.</p>
+      <p><b>How the words and pictures are put together.</b> The lab follows Mayer's principles of multimedia learning. <i>Pre-training:</i> each test opens with its key words and short definitions, before the reading. <i>Signaling:</i> key words are highlighted in the reading, and each diagram opens with a short cue that says where to look. <i>Redundancy:</i> in the panel that cue replaces a caption that would only repeat the reading beside it. <i>Coherence:</i> interesting side facts, such as the size of the largest shake table, sit in a closed Real world box, so they do not compete with the idea students need to predict. <i>Segmenting:</i> Observe comes in two steps students move through at their own pace, first what they measured, then why it happened. <i>Spatial and temporal contiguity:</i> in the sweep tests the student's own measured peak is drawn on the response curve, and the science explanation appears at the same time as its diagram, right under it. <i>Modality:</i> a Listen button reads the words aloud, so students can keep their eyes on the diagram. <i>Personalization:</i> the text talks to the student about their building and their run.</p>
       <p>The six tests build on each other: what a shake table does, resonance, why frequency matters as much as strength, stiffness, base isolation, and finally nonstructural hazards. Each fact is tagged <span class="tag real">Real world</span> or <span class="tag model">Model</span>, so students also learn what a scientific model can and cannot tell them.</p>
 
       <h2>Design challenge</h2>

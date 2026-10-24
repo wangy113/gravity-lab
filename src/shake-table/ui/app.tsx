@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Controller } from '../controller.ts';
 import { preflightNote } from '../motion/preflight.ts';
+import { GLOSSARY } from '../pedagogy.ts';
 import { STOPS, TAG_NAMES } from '../tour.ts';
 import { STOP_FIGURES } from '../concept-figures.ts';
 import { figureHtml } from '../figure.ts';
@@ -207,6 +208,10 @@ function Dialogs({ ctl }: Ctl) {
       <IntroDialog ctl={ctl} />
       <Dialog name="text" labelledBy="textT">
         <h1 id="textT">Text version</h1>
+        <section id="textTerms" aria-labelledby="textTermsT">
+          <h2 id="textTermsT">Key words</h2>
+          <dl class="glossary">{Object.entries(GLOSSARY).map(([t, d]) => <><dt>{t}</dt><dd>{d}</dd></>)}</dl>
+        </section>
         <div id="textBody">
           {STOPS.map((s, i) => (
             <>
@@ -214,6 +219,7 @@ function Dialogs({ ctl }: Ctl) {
               <p><b>{s.tags.map((t) => TAG_NAMES[t]).join(' and ')}</b></p>
               <div dangerouslySetInnerHTML={{ __html: s.body }} />
               <div dangerouslySetInnerHTML={{ __html: figureHtml(STOP_FIGURES[i]!.setup) }} />
+              {s.aside && <div class="realworld" dangerouslySetInnerHTML={{ __html: s.aside.replace('<p>', '<p><b>Real world:</b> ') }} />}
               <p><b>Notice:</b> {s.notice}</p>
             </>
           ))}

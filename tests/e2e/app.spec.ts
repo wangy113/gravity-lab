@@ -84,6 +84,7 @@ test('the guided lab asks for a prediction first and keeps it in the notebook', 
   await page.click('#introGuide');
   await expect(page.locator('#pTitle')).toHaveText('A table that makes earthquakes');
   await expect(page.locator('#toTest')).toBeDisabled();
+  await expect(page.locator('#pTerms dt')).toHaveText(['shake table', 'actuator', 'story']); // key words come first
   await page.getByLabel('Move with the table and barely bend').check();
   await page.click('#toTest');
   await expect(page.locator('#pRun')).toHaveText('Run this test');

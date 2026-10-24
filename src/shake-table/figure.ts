@@ -12,8 +12,14 @@
 export interface Figure {
   /** Short alt text: what the picture shows, read by screen readers. */
   alt: string;
-  /** The caption under the picture. It names what to look at, in the words the text uses. */
+  /** The full caption, for the text version and the printed report, where it has to stand on its own. */
   caption: string;
+  /**
+   * A short look-here cue, for the lab panel, where the same idea already sits in the text
+   * beside the picture. It points to the one part that matters (signaling) instead of
+   * repeating the text (redundancy). See the multimedia notes in pedagogy.ts.
+   */
+  cue: string;
   /** SVG markup made by svg(). Trusted, written by the lab's authors. */
   svg: string;
 }
@@ -50,7 +56,12 @@ export function shakeArrow(cx: number, y: number, half: number, color: string = 
   return arrow(cx, y, cx + half, y, color) + arrow(cx, y, cx - half, y, color);
 }
 
-/** Renders a figure with its caption. Used by the panel, the text version and the report. */
-export function figureHtml(f: Figure): string {
-  return `<figure class="fig">${f.svg}<figcaption>${f.caption}</figcaption></figure>`;
+/**
+ * Renders a figure. The panel shows the short cue, because the words it would repeat are
+ * right beside it. The text version and the report show the full caption.
+ */
+export function figureHtml(f: Figure, where: 'panel' | 'page' = 'page'): string {
+  return where === 'panel'
+    ? `<figure class="fig"><figcaption class="cue">${f.cue}</figcaption>${f.svg}</figure>`
+    : `<figure class="fig">${f.svg}<figcaption>${f.caption}</figcaption></figure>`;
 }

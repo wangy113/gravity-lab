@@ -84,8 +84,9 @@ function spring(x1: number, x2: number, y: number, color: string = C.steel): str
   return `<path d="${d}" stroke="${color}" stroke-width="1.5"/>`;
 }
 
+/** The cue is filled in from HINT_CUES below. */
 function fig(alt: string, caption: string, body: string): Figure {
-  return { alt, caption, svg: svg(alt, body) };
+  return { alt, caption, cue: '', svg: svg(alt, body) };
 }
 
 /* 1. Soft story: the weak ground story takes all the bending. */
@@ -267,4 +268,16 @@ const isolation = (() => {
 })();
 
 /** One figure per hint in the design challenge, in the same order as HINTS. */
-export const HINT_FIGURES: Figure[] = [softStory, torsion, stiffBeat, dampers, pDelta, drift, tmd, isolation];
+/** Short look-here cues for the panel, where the hint text already sits right above the picture. */
+const HINT_CUES = [
+  'Find the story that bends most.',
+  'Compare the braced face with the flexible side.',
+  'Compare the two sway traces.',
+  'Compare how fast the two traces die out.',
+  'Follow the weight down past the edge of the base.',
+  'Compare the drift with the dashed limit line.',
+  'Compare which way the block and the building move.',
+  'Compare the two bases.',
+];
+
+export const HINT_FIGURES: Figure[] = [softStory, torsion, stiffBeat, dampers, pDelta, drift, tmd, isolation].map((f, k) => ({ ...f, cue: HINT_CUES[k]! }));
