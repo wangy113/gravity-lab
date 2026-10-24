@@ -105,7 +105,7 @@ export function DesignPanel({ ctl }: Ctl) {
           <ul>{HINTS.slice(0, Math.min(failures, HINTS.length)).map((h, k) => (
             <li>
               {h}
-              <div dangerouslySetInnerHTML={{ __html: figureHtml(HINT_FIGURES[k]!) }} />
+              <div dangerouslySetInnerHTML={{ __html: figureHtml(HINT_FIGURES[k]!, 'panel') }} />
             </li>
           ))}</ul>
         </details>

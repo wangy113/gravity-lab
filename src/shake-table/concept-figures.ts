@@ -83,6 +83,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'A hydraulic actuator pushes a steel table back and forth through a chrome rod. A three-story steel frame is bolted to the table.',
     caption: 'The actuator pushes the steel table back and forth through its chrome rod. The building is bolted to the table.',
+    cue: 'Look at the chrome rod: it pushes the table, and the building rides on top.',
     svg: svg('A hydraulic actuator pushes a steel table back and forth through a chrome rod. A three-story steel frame is bolted to the table.',
       table() + frame(132, 116, 94, 28, [0, 0, 0, 0]) +
       label(244, 50, 'three-story', 'start') + label(244, 64, 'steel frame', 'start') +
@@ -93,6 +94,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'A building swaying on its own at its natural beat, with pushes timed to each swing. Below, a frequency scale from 0.6 to 4 hertz shows the sweep speeding up.',
     caption: 'The natural beat is the rhythm the building sways at on its own. Pushes in time with it add to every swing. The sweep tries every frequency from 0.6 Hz to 4 Hz.',
+    cue: 'Look at the timed push and the sweep scale underneath.',
     svg: svg('A building swaying on its own at its natural beat, with pushes timed to each swing. Below, a frequency scale from 0.6 to 4 hertz shows the sweep speeding up.',
       // the building at both ends of its own swing
       `<g opacity=".4">${frame(40, 100, 50, 26, [0, -6, -12, -16])}</g>` + frame(40, 100, 50, 26, [0, 6, 12, 16]) +
@@ -110,6 +112,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'Two shaking signals of the same height, so the same strength. One shakes at 3 hertz, the other at 1.2 hertz, the building\'s natural beat.',
     caption: 'The two signals have the same strength, shown by their height. They differ only in frequency, how many shakes there are each second.',
+    cue: 'Look at the heights: they match. Only the number of waves differs.',
     svg: svg('Two shaking signals of the same height, so the same strength. One shakes at 3 hertz, the other at 1.2 hertz, the building\'s natural beat.',
       label(14, 40, '3 Hz', 'start', 'font-weight="700"') + wave(70, 40, 230, 18, 7.5) +
       label(14, 112, '1.2 Hz', 'start', 'font-weight="700"') + wave(70, 112, 230, 18, 3) +
@@ -122,6 +125,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'Two three-story frames side by side. The bare frame has only columns. The braced frame has steel X-braces in every story, making each story about six times stiffer.',
     caption: 'Steel X-braces make each story about six times stiffer than the bare frame. A stiffer building has a faster natural beat.',
+    cue: 'Look at the X-braces in every story of the braced frame.',
     svg: svg('Two three-story frames side by side. The bare frame has only columns. The braced frame has steel X-braces in every story, making each story about six times stiffer.',
       frame(14, 130, 76, 32, [0, 0, 0, 0]) + label(52, 152, 'bare frame', 'middle') + label(52, 166, 'natural beat 1.2 Hz', 'middle', 'font-size="11"') +
       frame(230, 130, 76, 32, [0, 0, 0, 0], C.cyan, { braced: true }) + label(268, 152, 'braced frame', 'middle') + label(268, 166, 'faster beat', 'middle', 'font-size="11"') +
@@ -132,6 +136,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'A three-story building sitting on soft rubber bearings, with floor 2 marked. The bearings are soft side to side.',
     caption: 'Base isolation sets the building on rubber bearings that are soft side to side. The camera rides on floor 2.',
+    cue: 'Look at the rubber bearings between the ground and the building.',
     svg: svg('A three-story building sitting on soft rubber bearings, with floor 2 marked. The bearings are soft side to side.',
       `<rect x="70" y="136" width="170" height="12" fill="${C.amber}" fill-opacity=".35" stroke="${C.amber}" stroke-width="2"/>` +
       label(155, 166, 'ground', 'middle') +
@@ -147,6 +152,7 @@ const SETUPS: Figure[] = [
   {
     alt: 'The test scene split into parts. The steel frame is the structure. The unreinforced block wall, furniture and shelves are nonstructural parts.',
     caption: 'Structure in blue holds the building up. Nonstructural parts in amber, the block wall, furniture and shelves, are not part of the structure.',
+    cue: 'Look at the colors: blue holds the building up, amber does not.',
     svg: svg('The test scene split into parts. The steel frame is the structure. The unreinforced block wall, furniture and shelves are nonstructural parts.',
       frame(30, 120, 80, 30, [0, 0, 0, 0], C.cyan) +
       `<rect x="44" y="96" width="16" height="24" fill="${C.amber}" fill-opacity=".45" stroke="${C.amber}"/>` +
@@ -166,6 +172,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'A hydraulic actuator pushes a steel table back and forth. The building is bolted to the table. Its base moves with the table and its roof lags behind.',
     caption: 'The actuator\'s chrome rod drives the table. The base of the building moves with the table, and the roof lags behind.',
+    cue: 'Find the roof lagging behind the base.',
     svg: svg('A hydraulic actuator pushes a steel table back and forth. The building is bolted to the table. Its base moves with the table and its roof lags behind.',
       // reaction wall and floor
       `<rect x="14" y="70" width="18" height="78" fill="currentColor" fill-opacity=".18" stroke="currentColor"/>` +
@@ -191,6 +198,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'A graph of roof swing against shaking frequency from 0.6 to 4 hertz. The curve peaks sharply at the natural beat of about 1.2 hertz.',
     caption: 'As the sweep speeds up, the roof swing rises to a peak where the shaking matches the natural beat. That peak is resonance.',
+    cue: 'Find the peak. Which frequency is it at?',
     svg: svg('A graph of roof swing against shaking frequency from 0.6 to 4 hertz. The curve peaks sharply at the natural beat of about 1.2 hertz.',
       freqAxes(40, 140, 250, 110, 4.4, [1, 2, 3, 4]) +
       `<rect x="${40 + (0.6 / 4.4) * 250}" y="26" width="${(3.4 / 4.4) * 250}" height="114" fill="${C.amber}" fill-opacity=".08" stroke="none"/>` +
@@ -205,6 +213,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'Two tests with the same strength of shaking. At 3 hertz the building barely bends. At 1.2 hertz, in time with its natural beat, it sways hard.',
     caption: 'Both tables shake with the same strength. Only the frequency differs, and only the one in time with the natural beat makes the building sway hard.',
+    cue: 'Compare the two buildings. Same strength, very different sway.',
     svg: svg('Two tests with the same strength of shaking. At 3 hertz the building barely bends. At 1.2 hertz, in time with its natural beat, it sways hard.',
       `<line x1="160" y1="10" x2="160" y2="160" stroke="currentColor" stroke-opacity=".3"/>` +
       // left: 3 Hz
@@ -227,6 +236,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'Two response curves. The bare frame peaks near 1.2 hertz. The braced frame, about six times stiffer, peaks near 2.9 hertz, further up the frequency scale.',
     caption: 'X-braces make each story stiffer, so the natural beat and its danger zone move up the frequency scale, from about 1.2 Hz to about 2.9 Hz.',
+    cue: 'Find both peaks. Which way did the braces move the danger zone?',
     svg: svg('Two response curves. The bare frame peaks near 1.2 hertz. The braced frame, about six times stiffer, peaks near 2.9 hertz, further up the frequency scale.',
       freqAxes(40, 140, 250, 110, 4.4, [1, 2, 3, 4]) +
       responseCurve(1.2, 40, 140, 250, 104, 4.4, C.cyan) +
@@ -242,6 +252,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'A building on rubber bearings. The ground moves a long way. The bearings bend sideways and the floors above move only a little.',
     caption: 'The soft rubber bearings bend side to side, so the ground moves under the building while the floors above move slowly and gently.',
+    cue: 'Compare the ground arrows with the floor arrows.',
     svg: svg('A building on rubber bearings. The ground moves a long way. The bearings bend sideways and the floors above move only a little.',
       `<rect x="70" y="136" width="170" height="12" fill="${C.amber}" fill-opacity=".35" stroke="${C.amber}" stroke-width="2"/>` +
       arrow(155, 160, 215, 160, C.amber, 3) + arrow(155, 160, 95, 160, C.amber, 3) +
@@ -259,6 +270,7 @@ const RESULTS: Figure[] = [
   {
     alt: 'A timeline of a strong quake on the bare frame. The first story fails at about 6 seconds, the furniture tumbles right after, and the unreinforced block wall falls about 2 seconds later.',
     caption: 'Structure in blue, nonstructural parts in amber. In this model the first story fails first, then the furniture tumbles, then the block wall comes down.',
+    cue: 'Read the timeline from left to right. What failed first?',
     svg: svg('A timeline of a strong quake on the bare frame. The first story fails at about 6 seconds, the furniture tumbles right after, and the unreinforced block wall falls about 2 seconds later.',
       // small scene: frame (structure) with a shelf inside, block wall beside it
       frame(30, 92, 70, 24, [0, 0, 0, 0], C.cyan) +
@@ -283,3 +295,24 @@ const RESULTS: Figure[] = [
 
 /** For each guided test, the setup figure (Predict) and the result figure (Observe). */
 export const STOP_FIGURES: { setup: Figure; result: Figure }[] = SETUPS.map((setup, i) => ({ setup, result: RESULTS[i]! }));
+
+/** Frequency to x on the response curve figures (tests 2 and 4), as drawn by freqAxes(40, 140, 250, ...). */
+const curveX = (f: number): number => 40 + (f / 4.4) * 250;
+
+/**
+ * The result figure with the student's own measurement drawn on it, where a figure has a
+ * place for one. Putting the number on the picture, next to the peak it should match,
+ * saves the student from looking back and forth between a list and a diagram (spatial
+ * contiguity). Tests 2 and 4 are sweeps, so the peak frequency they measured goes on the curve.
+ */
+export function resultFigure(i: number, run?: { peakRoofHz: number | null } | null): Figure {
+  const f = RESULTS[i]!, hz = run?.peakRoofHz;
+  if ((i !== 1 && i !== 3) || !hz || hz < 0.2 || hz > 4.4) return f;
+  const x = curveX(hz), text = `your run: ${hz.toFixed(2)} Hz`;
+  const mark = `<g class="yourrun"><line x1="${x.toFixed(1)}" y1="30" x2="${x.toFixed(1)}" y2="140" stroke="${C.green}" stroke-width="2" stroke-dasharray="5 3"/>` +
+    `<circle cx="${x.toFixed(1)}" cy="140" r="4" fill="${C.green}" stroke="none"/>` +
+    `<text x="${x.toFixed(1)}" y="170" text-anchor="middle" fill="${C.green}" font-weight="700">${text}</text></g>`;
+  const alt = `${f.alt} Your run peaked at ${hz.toFixed(2)} hertz, marked in green.`;
+  return { ...f, alt, svg: f.svg.replace(/aria-label="[^"]*"/, `aria-label="${alt.replace(/"/g, '&quot;')}"`).replace(/<\/svg>$/, `${mark}</svg>`)
+    .replace(/viewBox="0 0 (\d+) (\d+)"/, (_, w: string, h: string) => `viewBox="0 0 ${w} ${Number(h) + 8}"`) }; // room for the label under the axis
+}
